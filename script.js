@@ -1,19 +1,29 @@
 // --- 設定 ---
-const API_URL_BASE = "https://shift-app-api-xgls.onrender.com"; // ★あなたのベースURL
+const API_URL_BASE = "https://shift-app-api-xgls.onrender.com";
 const GET_DATA_URL = `${API_URL_BASE}/api/shift-data`;
 const ADD_SHIFT_URL = `${API_URL_BASE}/api/shifts/add`;
 const UPDATE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/update/`;
 const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
-const SHIFT_TYPES_TO_COUNT = ["早", "日1", "日2", "中", "遅", "夜", "明"];
-const HOLIDAY_TYPES = ["休", "有"];
+
+const SHIFT_DEFINITIONS = {
+    "早": { type: 'day_work', hours: 8 },
+    "日1": { type: 'day_work', hours: 8 },
+    "日2": { type: 'day_work', hours: 8 },
+    "中": { type: 'day_work', hours: 8 },
+    "遅": { type: 'day_work', hours: 8 },
+    "夜": { type: 'night_work', hours: 16 },
+    "明": { type: 'night_work', hours: 0 },
+    "休": { type: 'holiday', hours: 0 },
+    "有": { type: 'paid_holiday', hours: 0 }
+};
+const SUMMARY_ORDER = ["早", "日1", "日2", "中", "遅", "夜", "明", "日勤時間数", "夜勤時間数", "休", "有"];
 
 // --- 状態管理 ---
 let currentDate = new Date();
+let isAccordionOpen = false;
 
 // --- DOM要素の取得 ---
 let tableHeader, tableBody, modalBackground, modalContent, modalTitle, modalBody, modalCloseBtn, shiftDetailView, shiftAddForm, calendarTitle, prevMonthBtn, nextMonthBtn, todayBtn;
-
-// --- グローバル変数 ---
 let currentShifts = [];
 
 // --- 初期化 & メイン処理 ---
@@ -60,7 +70,6 @@ function setupEventListeners() {
 async function buildShiftTable() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
-
     calendarTitle.textContent = `${year}年 ${month}月`;
     tableBody.innerHTML = `<tr><td>読み込み中...</td></tr>`;
 
@@ -75,31 +84,29 @@ async function buildShiftTable() {
     const daysInMonth = new Date(year, month, 0).getDate();
 
     let headerHTML = `<tr><th class="header-staff-col">氏名</th>`;
-    let dayOfWeekHTML = `<tr><th class="header-staff-col"></th>`;
     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
         const dayOfWeek = date.getDay();
         const dayClass = dayOfWeek === 0 ? "day-sunday" : dayOfWeek === 6 ? "day-saturday" : "";
-        headerHTML += `<th class="${dayClass}">${day}</th>`;
-        dayOfWeekHTML += `<th class="${dayClass}">${weekdays[dayOfWeek]}</th>`;
+        headerHTML += `<th class="${dayClass}">${day}<br>${weekdays[dayOfWeek]}</th>`;
     }
-    headerHTML += `<th class="summary-header-col">勤務</th>`;
-    dayOfWeekHTML += `<th class="summary-header-col">休日</th>`;
-    tableHeader.innerHTML = headerHTML + `</tr>` + dayOfWeekHTML + `</tr>`;
+
+    headerHTML += `<th class="summary-main-header">
+        <div class="summary-header-container">
+            <span>総時間</span>
+            <button id="accordion-toggle" class="accordion-toggle">${isAccordionOpen ? '−' : '+'}</button>
+        </div>
+    </th>`;
+    SUMMARY_ORDER.forEach(key => {
+        const visibilityClass = isAccordionOpen ? 'visible' : '';
+        headerHTML += `<th class="summary-detail-header ${visibilityClass}">${key}</th>`;
+    });
+    tableHeader.innerHTML = headerHTML + `</tr>`;
 
     let bodyHTML = "";
     staff.forEach(staffMember => {
-        const summary = { work_days: 0, holidays: 0 };
-        const staffShifts = shifts.filter(s => s.staff_name === staffMember.name);
-        staffShifts.forEach(shift => {
-            if (SHIFT_TYPES_TO_COUNT.includes(shift.shift_type)) {
-                summary.work_days++;
-            } else if (HOLIDAY_TYPES.includes(shift.shift_type)) {
-                summary.holidays++;
-            }
-        });
-
+        const summary = calculateSummary(shifts.filter(s => s.staff_name === staffMember.name));
         bodyHTML += `<tr><td class="staff-name-col">${staffMember.name}</td>`;
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -111,18 +118,43 @@ async function buildShiftTable() {
                 bodyHTML += `<td class="shift-cell empty-cell ${dayClass}" data-date="${dateStr}" data-staff-id="${staffMember.id}" data-staff-name="${staffMember.name}"></td>`;
             }
         }
-        bodyHTML += `<td class="summary-data-col">${summary.work_days}</td>`;
-        bodyHTML += `<td class="summary-data-col">${summary.holidays}</td>`;
+        const totalHours = summary['日勤時間数'] + summary['夜勤時間数'];
+        bodyHTML += `<td class="summary-main-col">${totalHours}h</td>`;
+        SUMMARY_ORDER.forEach(key => {
+            const visibilityClass = isAccordionOpen ? 'visible' : '';
+            const value = summary[key] || 0;
+            const unit = key.includes('時間数') ? 'h' : '';
+            bodyHTML += `<td class="summary-detail-col ${visibilityClass}">${value}${unit}</td>`;
+        });
         bodyHTML += `</tr>`;
     });
     tableBody.innerHTML = bodyHTML;
 
     setupCellClickEvents();
+    document.getElementById('accordion-toggle').addEventListener('click', () => {
+        isAccordionOpen = !isAccordionOpen;
+        buildShiftTable();
+    });
 }
 
-// ... (setupCellClickEvents, handleFormSubmit, モーダル関連関数, API通信関連関数, データ変換ヘルパー は以前の完全版から変更なし) ...
+function calculateSummary(staffShifts) {
+    const summary = {};
+    SUMMARY_ORDER.forEach(key => summary[key] = 0);
+    staffShifts.forEach(shift => {
+        const def = SHIFT_DEFINITIONS[shift.shift_type];
+        if (def) {
+            summary[shift.shift_type]++;
+            if (def.type === 'day_work') {
+                summary['日勤時間数'] += def.hours;
+            } else if (def.type === 'night_work') {
+                summary['夜勤時間数'] += def.hours;
+            }
+        }
+    });
+    return summary;
+}
+// (これ以降の関数は、前回の「完全版」から変更ありません)
 
-// (※↓以下に、変更がない部分を含めた完全なコードの残りを記載します↓)
 function setupCellClickEvents() {
     document.querySelectorAll('.has-shift').forEach(cell => {
         cell.addEventListener('click', (event) => {
