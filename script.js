@@ -12,6 +12,7 @@ const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
 const ADD_STAFF_URL = `${API_URL_BASE}/api/staff/add`;
 const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
 const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
+const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`; // ★ 追加
 
 // シフト定義
 const SHIFT_DEFINITIONS = {
@@ -324,6 +325,73 @@ function renderStaffList() {
     staffListContainer.innerHTML = listHTML;
 }
 
+// ★★★ 勤務可否エディタを描画する関数 (新規追加) ★★★
+function renderAvailabilityEditor(staff) {
+    const editorContainer = document.getElementById('availability-editor-container');
+    const matrixTable = document.getElementById('availability-matrix');
+    document.getElementById('editor-staff-name').textContent = `${staff.name} の勤務可否設定`;
+
+    const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+    const shiftTypes = ["早", "日1", "日2", "中", "遅", "夜", "明"];
+
+    let html = '<thead><tr><th></th>';
+    weekdays.forEach(day => html += `<th>${day}</th>`);
+    html += '</tr></thead>';
+
+    html += '<tbody>';
+    shiftTypes.forEach(st => {
+        html += `<tr><td>${st}</td>`;
+        for (let dow = 0; dow < 7; dow++) {
+            const availability = staff.availabilities?.find(a => a.day_of_week === dow && a.shift_type === st);
+            const isAvailable = availability ? availability.is_available : true;
+
+            html += `<td>
+                <div class="availability-toggle ${isAvailable ? 'is-available' : ''}"
+                     data-day-of-week="${dow}"
+                     data-shift-type="${st}">
+                </div>
+            </td>`;
+        }
+        html += '</tr>';
+    });
+    html += '</tbody>';
+    matrixTable.innerHTML = html;
+
+    editorContainer.style.display = 'block';
+
+    matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            toggle.classList.toggle('is-available');
+        });
+    });
+
+    document.getElementById('save-availability-btn').onclick = async () => {
+        const newAvailabilities = [];
+        matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
+            newAvailabilities.push({
+                day_of_week: parseInt(toggle.dataset.dayOfWeek, 10),
+                shift_type: toggle.dataset.shiftType,
+                is_available: toggle.classList.contains('is-available')
+            });
+        });
+        
+        const success = await updateStaffAvailabilitiesApi(staff.id, newAvailabilities);
+        if (success) {
+            alert('設定を保存しました。');
+            editorContainer.style.display = 'none';
+            await buildShiftTable();
+            renderStaffList();
+        } else {
+            alert('設定の保存に失敗しました。');
+        }
+    };
+    
+    document.getElementById('cancel-availability-btn').onclick = () => {
+        editorContainer.style.display = 'none';
+    };
+}
+
+
 // =================================================================================
 // --- イベントハンドラ (Event Handlers) ---
 // =================================================================================
@@ -416,27 +484,13 @@ async function handleAddStaff(event) {
     }
 }
 
-async function handleEditStaff(staffId) {
+// ★★★ 編集ボタンの処理を勤務可否エディタの表示に変更 ★★★
+function handleEditStaff(staffId) {
     const staff = currentStaff.find(s => s.id === staffId);
-    if (!staff) return;
-
-    const newName = prompt('新しいスタッフ名:', staff.name);
-    if (!newName || newName.trim() === '') return;
-
-    const newGender = prompt('性別:', staff.gender);
-    const newEmploymentType = prompt('雇用形態:', staff.employment_type);
-
-    const staffData = {
-        name: newName.trim(),
-        gender: newGender,
-        employment_type: newEmploymentType
-    };
-
-    if (await updateStaffApi(staffId, staffData)) {
-        await buildShiftTable();
-        renderStaffList();
-    } else {
-        alert('スタッフ情報の更新に失敗しました。');
+    if (staff) {
+        // スタッフ管理モーダルを閉じ、可否エディタを開く
+        closeStaffModal();
+        renderAvailabilityEditor(staff);
     }
 }
 
@@ -472,6 +526,12 @@ async function deleteShiftApi(shiftId) { return await postData(`${DELETE_SHIFT_U
 async function addStaffApi(staffData) { return await postData(ADD_STAFF_URL, staffData, 'Failed to add staff'); }
 async function updateStaffApi(staffId, staffData) { return await postData(`${UPDATE_STAFF_URL_TEMPLATE}${staffId}`, staffData, 'Failed to update staff', 'PUT'); }
 async function deleteStaffApi(staffId) { return await postData(`${DELETE_STAFF_URL_TEMPLATE}${staffId}`, null, 'Failed to delete staff', 'DELETE'); }
+// ★★★ 勤務可否を更新するAPI関数 (新規追加) ★★★
+async function updateStaffAvailabilitiesApi(staffId, availabilities) {
+    const url = `${UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE}${staffId}`;
+    return await postData(url, availabilities, 'Failed to update availabilities', 'POST');
+}
+
 
 async function postData(url, data, errorMessage, method = 'POST') {
     try {
