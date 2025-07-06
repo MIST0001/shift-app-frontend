@@ -7,7 +7,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>令和7年 7月 シフト表</h1>
+    <div class="header-nav">
+        <button id="prev-month-btn">< 前の月</button>
+        <h1 id="calendar-title"></h1> <!-- タイトルはJSで動的に設定 -->
+        <button id="next-month-btn">次の月 ></button>
+        <button id="today-btn">今月</button>
+    </div>
     
     <div class="table-container">
         <table class="shift-table">
