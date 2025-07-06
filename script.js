@@ -381,15 +381,59 @@ async function handleEditStaff(staffId, currentName) {
 /**
  * スタッフ削除の処理を行う
  */
+// handleDeleteStaff 関数を書き換える
 async function handleDeleteStaff(staffId) {
-    if (confirm('このスタッフを本当に削除しますか？\n関連するシフトがあると削除できません。')) {
-        const success = await deleteStaffApi(staffId);
-        if (success) {
+    if (confirm('このスタッフを本当に削除しますか？')) {
+        const success = await deleteStaffData(staffId, false); // まずは通常削除を試みる
+        
+        if (success.ok) {
+            // 削除成功
             await buildShiftTable();
             renderStaffList();
         } else {
-            alert('スタッフの削除に失敗しました。関連シフトがないか確認してください。');
+            // 削除失敗
+            if (success.data && success.data.needs_confirmation) {
+                // バックエンドから「確認が必要」と返ってきた場合
+                if (confirm('このスタッフには関連するシフトがあります。\nすべての関連シフトも一緒に削除しますか？\n（この操作は元に戻せません）')) {
+                    const forceSuccess = await deleteStaffData(staffId, true); // 次は強制削除を試みる
+                    if (forceSuccess.ok) {
+                        await buildShiftTable();
+                        renderStaffList();
+                    } else {
+                        alert(`強制削除に失敗しました: ${forceSuccess.data.error}`);
+                    }
+                }
+            } else {
+                // その他のエラー
+                alert(`スタッフの削除に失敗しました: ${success.data.error}`);
+            }
         }
+    }
+}
+
+
+// deleteStaffData 関数を書き換える
+async function deleteStaffData(staffId, force = false) {
+    try {
+        // 'force' パラメータをURLに追加
+        const url = `${DELETE_STAFF_URL_TEMPLATE}${staffId}${force ? '?force=true' : ''}`;
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            // 200番台以外のステータスコードの場合
+            return { ok: false, data: responseData };
+        }
+        // 成功した場合
+        return { ok: true, data: responseData };
+
+    } catch (error) {
+        console.error('Failed to delete staff:', error);
+        return { ok: false, data: { error: '通信エラーが発生しました。' } };
     }
 }
 
