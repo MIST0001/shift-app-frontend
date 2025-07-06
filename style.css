@@ -120,3 +120,30 @@ h1 {
     background-color: #d4e9ff;
     font-weight: bold;
 }
+/* --- ここからナビゲーション用のスタイルを追加 --- */
+.header-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5em; /* 要素間のスペース */
+    margin-bottom: 1.5em;
+}
+
+#calendar-title {
+    margin: 0;
+    min-width: 200px; /* タイトルの幅を確保 */
+    text-align: center;
+}
+
+.header-nav button {
+    padding: 0.5em 1em;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.header-nav button:hover {
+    background-color: #f2f2f2;
+}
