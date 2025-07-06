@@ -3,35 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シフトカレンダー</title>
-    <!-- 作成したCSSファイルを読み込む -->
+    <title>シフト表</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
     <h1>令和7年 7月 シフト表</h1>
-
-    <div class="calendar-container">
-        <table class="calendar-table">
-            <!-- thead: テーブルのヘッダー（曜日） -->
-            <thead>
-                <tr>
-                    <th>日</th>
-                    <th>月</th>
-                    <th>火</th>
-                    <th>水</th>
-                    <th>木</th>
-                    <th>金</th>
-                    <th>土</th>
-                </tr>
+    <div class="table-container">
+        <table class="shift-table">
+            <thead id="table-header">
+                <!-- JavaScriptがここに日付ヘッダーを生成します -->
             </thead>
-            <!-- tbody: テーブルの本体（日付）。JavaScriptがここにカレンダーを生成します。 -->
-            <tbody id="calendar-body">
-                <!-- ここはJavaScriptによって動的に生成されます -->
+            <tbody id="table-body">
+                <!-- JavaScriptがここにスタッフのシフト行を生成します -->
             </tbody>
         </table>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
