@@ -12,6 +12,7 @@
         <h1 id="calendar-title"></h1>
         <button id="next-month-btn">次の月 ></button>
         <button id="today-btn">今月</button>
+        <button id="staff-manage-btn">スタッフ管理</button>
     </div>
 
     <div class="table-container">
@@ -62,5 +63,23 @@
     </div>
 
     <script src="script.js"></script>
+                <!-- 既存のシフト用モーダルの下あたりに追加 -->
+    <div id="staff-modal-background" class="modal-background"></div>
+    <div id="staff-modal-content" class="modal-content">
+        <div class="modal-header">
+            <h2>スタッフ管理</h2>
+            <button id="staff-modal-close-btn" class="modal-close-btn">×</button>
+        </div>
+        <div id="staff-modal-body" class="modal-body">
+            <div id="staff-list-container">
+                <!-- JSがここにスタッフ一覧を生成 -->
+            </div>
+            <hr>
+            <form id="add-staff-form">
+                <input type="text" id="new-staff-name" placeholder="新しいスタッフ名" required>
+                <button type="submit">追加</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
