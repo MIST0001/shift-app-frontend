@@ -61,3 +61,27 @@ h1 { text-align: center; }
 /* 基本集計列 */
 .summary-main-header, .summary-main-col { background-color: #f8f9fa; font-weight: bold; min-width: 80px; position: sticky; right: 0; z-index: 1; border-left: 1px solid #ccc; }
 .summary-main-header { z-index: 3 !important; }
+/* --- スタッフ管理モーダル用のスタイル --- */
+#staff-list-container ul {
+    list-style: none;
+    padding: 0;
+}
+#staff-list-container li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+#staff-list-container li button {
+    margin-left: 8px;
+    cursor: pointer;
+}
+#add-staff-form {
+    display: flex;
+    margin-top: 15px;
+}
+#add-staff-form input {
+    flex-grow: 1; /* 入力欄を広げる */
+    margin-right: 10px;
+}
