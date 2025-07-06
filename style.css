@@ -1,228 +1,63 @@
-body {
-    font-family: sans-serif;
-    margin: 1em;
-}
+/* 基本的なスタイル */
+body { font-family: sans-serif; margin: 1em; }
+h1 { text-align: center; }
 
-h1 {
-    text-align: center;
-}
+/* ナビゲーション */
+.header-nav { display: flex; justify-content: center; align-items: center; gap: 1.5em; margin-bottom: 1.5em; }
+#calendar-title { margin: 0; min-width: 200px; text-align: center; }
+.header-nav button { padding: 0.5em 1em; border: 1px solid #ccc; background-color: #fff; border-radius: 4px; cursor: pointer; font-size: 1em; }
+.header-nav button:hover { background-color: #f2f2f2; }
 
-/* 横スクロール可能にするためのコンテナ */
-.table-container {
-    width: 100%;
-    overflow-x: auto;
-    border: 1px solid #ccc;
-}
+/* テーブルコンテナ */
+.table-container { width: 100%; overflow-x: auto; border: 1px solid #ccc; }
+.shift-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+.shift-table th, .shift-table td { border: 1px solid #ccc; padding: 0.5em; text-align: center; min-width: 50px; }
+.shift-table thead th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 2; }
 
-.shift-table {
-    width: 100%;
-    border-collapse: collapse;
-    white-space: nowrap; /* セル内での改行を防ぐ */
-}
-
-.shift-table th, .shift-table td {
-    border: 1px solid #ccc;
-    padding: 0.5em;
-    text-align: center;
-    min-width: 50px; /* セルの最小幅 */
-}
-
-.shift-table thead th {
-    background-color: #f2f2f2;
-    position: sticky; /* ヘッダーを固定 */
-    top: 0;
-    z-index: 2;
-}
-
-/* 左端のスタッフ名列のスタイル */
-.staff-name-col {
-    font-weight: bold;
-    text-align: left;
-    background-color: #f2f2f2;
-}
-
-/* ★★★ 左端の列を固定する魔法 ★★★ */
-.staff-name-col {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-}
-/* ヘッダーの左上角も固定 */
-.header-staff-col {
-    position: sticky;
-    left: 0;
-    z-index: 3 !important;
-}
+/* 左端のスタッフ名列 */
+.staff-name-col { font-weight: bold; text-align: left; background-color: #f2f2f2; position: sticky; left: 0; z-index: 1; }
+.header-staff-col { position: sticky; left: 0; z-index: 3 !important; }
 
 /* 曜日の色分け */
 .day-saturday { background-color: #e0efff; }
 .day-sunday { background-color: #ffe0e0; }
-/* --- ここからポップアップ（モーダル）用のスタイルを追加 --- */
 
-/* ポップアップの背景 */
-.modal-background {
-    display: none; /* 初期状態では非表示 */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* 半透明の黒 */
-    z-index: 10;
-}
+/* クリックできるシフトセル */
+.shift-cell.has-shift { cursor: pointer; background-color: #eaf5ff; }
+.shift-cell.has-shift:hover { background-color: #d4e9ff; font-weight: bold; }
+.shift-cell.empty-cell { cursor: pointer; }
+.shift-cell.empty-cell:hover { background-color: #f0f0f0; }
 
-/* ポップアップ本体 */
-.modal-content {
-    display: none; /* 初期状態では非表示 */
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%); /* 画面中央に配置 */
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    z-index: 11;
-    min-width: 300px;
-}
+/* モーダル（ポップアップ） */
+.modal-background { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 10; }
+.modal-content { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 11; min-width: 300px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+.modal-header h2 { margin: 0; }
+.modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.modal-buttons { margin-top: 15px; text-align: right; }
+.modal-buttons .delete-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; margin-left: 10px; }
+.modal-buttons .delete-btn:hover { background-color: #c0392b; }
+.is-visible { display: block !important; }
 
-/* 表示状態にするためのクラス */
-.is-visible {
-    display: block !important;
-}
+/* アコーディオン集計列 */
+.summary-header-container { display: flex; align-items: center; justify-content: center; gap: 0.5em; }
+.accordion-toggle { cursor: pointer; border: 1px solid #aaa; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; font-weight: bold; background-color: #fff; }
+.accordion-toggle:hover { background-color: #e9e9e9; }
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-}
-
-.modal-header h2 {
-    margin: 0;
-}
-
-.modal-close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-
-/* クリックできるシフトセルのスタイル */
-.shift-cell.has-shift {
-    cursor: pointer;
-    background-color: #eaf5ff;
-}
-.shift-cell.has-shift:hover {
-    background-color: #d4e9ff;
-    font-weight: bold;
-}
-/* --- ここからナビゲーション用のスタイルを追加 --- */
-.header-nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1.5em; /* 要素間のスペース */
-    margin-bottom: 1.5em;
-}
-
-#calendar-title {
-    margin: 0;
-    min-width: 200px; /* タイトルの幅を確保 */
-    text-align: center;
-}
-
-.header-nav button {
-    padding: 0.5em 1em;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-}
-
-.header-nav button:hover {
-    background-color: #f2f2f2;
-}
-/* --- ここから集計列用のスタイルを追加 --- */
-.summary-header-col, .summary-data-col {
-    background-color: #f8f9fa; /* 少し薄いグレー */
-    font-weight: bold;
-    min-width: 80px; /* 集計列の幅を少し広めに */
-}
-
-/* 集計列は右端に固定（スクロールしても見えるように） */
-.summary-header-col {
-    position: sticky;
-    right: 0;
-    z-index: 3 !important; /* ヘッダーの左上角より手前に来るように */
-}
-.summary-data-col {
-    position: sticky;
-    right: 0;
-    z-index: 1;
-}
-/* --- ここからアコーディオン集計列用のスタイルを追加 --- */
-
-/* 集計ヘッダーをフレックスボックスでレイアウト */
-.summary-header-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5em;
-}
-
-/* アコーディオン開閉ボタン */
-.accordion-toggle {
-    cursor: pointer;
-    border: 1px solid #aaa;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    font-weight: bold;
-    background-color: #fff;
-}
-.accordion-toggle:hover {
-    background-color: #e9e9e9;
-}
-
-/* 詳細な集計列（最初は非表示） */
-.summary-detail-col, .summary-detail-header {
+/* ★★★ アコーディオンの表示/非表示を制御する重要なスタイル ★★★ */
+.summary-detail-header, .summary-detail-col {
     max-width: 0;
     overflow: hidden;
-    padding-left: 0;
-    padding-right: 0;
-    border-left: none;
-    border-right: none;
-    transition: all 0.3s ease-in-out; /* 開閉アニメーション */
-    white-space: nowrap;
+    padding: 0;
+    border: none;
+    transition: all 0.3s ease-in-out;
 }
-
-/* 表示状態のスタイル */
-.summary-detail-col.visible, .summary-detail-header.visible {
-    max-width: 100px; /* 十分な幅を確保 */
-    padding-left: 0.5em;
-    padding-right: 0.5em;
+.summary-detail-header.visible, .summary-detail-col.visible {
+    max-width: 100px;
+    padding: 0.5em;
     border-left: 1px solid #ccc;
 }
 
-/* 基本集計列のスタイル調整 */
-.summary-main-col, .summary-main-header {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    min-width: 80px;
-    position: sticky;
-    right: 0;
-    z-index: 1;
-    border-left: 1px solid #ccc;
-}
-.summary-main-header {
-    z-index: 3 !important;
-}
+/* 基本集計列 */
+.summary-main-header, .summary-main-col { background-color: #f8f9fa; font-weight: bold; min-width: 80px; position: sticky; right: 0; z-index: 1; border-left: 1px solid #ccc; }
+.summary-main-header { z-index: 3 !important; }
