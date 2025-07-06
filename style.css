@@ -72,9 +72,9 @@ h1 {
 .shift-table th,
 .shift-table td {
     border: 1px solid #ddd; /* ボーダーの色を少し薄く */
-    padding: 0.75em; /* パディングを少し広げる */
+    padding: 0.75em 0.4em; /* ★★★ パディングを調整して幅を狭くする ★★★ */
     text-align: center;
-    min-width: 55px;
+    min-width: 40px; /* ★★★ 日付列の最小幅を狭くする ★★★ */
 }
 
 
