@@ -114,10 +114,11 @@
     <div id="edit-staff-modal-background" class="modal-background"></div>
     <div id="edit-staff-modal-content" class="modal-content">
         <div class="modal-header">
-            <h2>スタッフ情報編集</h2>
+            <h2 id="edit-staff-modal-title">スタッフ編集</h2>
             <button id="edit-staff-modal-close-btn" class="modal-close-btn">×</button>
         </div>
-        <div class="modal-body">
+        <div id="edit-staff-modal-body" class="modal-body">
+            <!-- スタッフ基本情報編集フォーム -->
             <form id="edit-staff-form">
                 <input type="hidden" id="edit-staff-id">
                 <div>
@@ -149,8 +150,21 @@
                         <option value="ベテラン">ベテラン</option>
                     </select>
                 </div>
-                <button type="submit">更新する</button>
+                <div class="modal-buttons">
+                    <button type="button" id="open-availability-editor-btn">勤務可否を設定する</button>
+                    <button type="submit">基本情報を更新</button>
+                </div>
             </form>
+
+            <!-- 勤務可否マトリクス編集エリア（最初は非表示） -->
+            <div id="availability-editor-container-in-edit" style="display: none;">
+                <h3 id="editor-staff-name-in-edit"></h3>
+                <table id="availability-matrix-in-edit"></table>
+                <div class="modal-buttons">
+                    <button type="button" id="back-to-staff-edit-btn">基本情報へ戻る</button>
+                    <button type="button" id="save-availability-btn-in-edit">可否設定を保存</button>
+                </div>
+            </div>
         </div>
     </div>
 
