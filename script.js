@@ -100,6 +100,4 @@ modalBackground.addEventListener('click', closeModal);
 // --- 実行 ---
 buildShiftTable();
 
-// 変更なしの関数をここにコピー
-async function fetchData() { try { const response = await fetch(API_URL); if (!response.ok) throw new Error('API Error'); return await response.json(); } catch (error) { console.error("Fetch error:", error); tableBody.innerHTML = `<tr><td>データ取得エラー</td></tr>`; return {}; } }
-function transformShiftsToMap(shifts) { const map = {}; shifts.forEach(shift => { if (!map[shift.staff_name]) { map[shift.staff_name] = {}; } map[shift.staff_name][shift.date] = shift; }); return map; }
+// ★★★ ここから下は、もう何も書かない ★★★
