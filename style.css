@@ -1,77 +1,59 @@
-/* 基本的なスタイル */
 body {
-    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-    background-color: #f4f7f6;
-    color: #333;
-    padding: 20px;
+    font-family: sans-serif;
+    margin: 1em;
 }
 
 h1 {
     text-align: center;
-    color: #2c3e50;
 }
 
-/* カレンダー全体のコンテナ */
-.calendar-container {
+/* 横スクロール可能にするためのコンテナ */
+.table-container {
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    background-color: #fff;
-    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-    border-radius: 8px;
-    overflow: hidden; /* テーブルの角丸を有効にするため */
+    overflow-x: auto;
+    border: 1px solid #ccc;
 }
 
-/* カレンダーテーブルのスタイル */
-.calendar-table {
+.shift-table {
     width: 100%;
-    border-collapse: collapse; /* ボーダーを重ねる */
+    border-collapse: collapse;
+    white-space: nowrap; /* セル内での改行を防ぐ */
 }
 
-.calendar-table th, .calendar-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-    vertical-align: top;
-}
-
-/* ヘッダー行（曜日）のスタイル */
-.calendar-table th {
-    background-color: #3498db;
-    color: white;
+.shift-table th, .shift-table td {
+    border: 1px solid #ccc;
+    padding: 0.5em;
     text-align: center;
+    min-width: 50px; /* セルの最小幅 */
 }
 
-/* 日付セルのスタイル */
-.calendar-table td {
-    height: 120px; /* セルの高さを確保 */
+.shift-table thead th {
+    background-color: #f2f2f2;
+    position: sticky; /* ヘッダーを固定 */
+    top: 0;
+    z-index: 2;
 }
 
-/* 日付の数字部分 */
-.date-number {
-    font-size: 1.2em;
+/* 左端のスタッフ名列のスタイル */
+.staff-name-col {
     font-weight: bold;
-    color: #555;
+    text-align: left;
+    background-color: #f2f2f2;
 }
 
-/* 土日の色分け */
-.saturday {
-    color: #2980b9; /* 青 */
+/* ★★★ 左端の列を固定する魔法 ★★★ */
+.staff-name-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
 }
-.sunday {
-    color: #c0392b; /* 赤 */
+/* ヘッダーの左上角も固定 */
+.header-staff-col {
+    position: sticky;
+    left: 0;
+    z-index: 3 !important;
 }
 
-/* シフト情報を入れるコンテナ */
-.shifts-container {
-    margin-top: 5px;
-}
-
-/* 個々のシフト情報のスタイル */
-.shift-item {
-    font-size: 0.9em;
-    background-color: #ecf0f1;
-    border-radius: 3px;
-    padding: 2px 4px;
-    margin-bottom: 3px;
-}
+/* 曜日の色分け */
+.day-saturday { background-color: #e0efff; }
+.day-sunday { background-color: #ffe0e0; }
