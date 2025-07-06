@@ -4,6 +4,8 @@ const GET_DATA_URL = `${API_URL_BASE}/api/shift-data`;
 const ADD_SHIFT_URL = `${API_URL_BASE}/api/shifts/add`;
 const UPDATE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/update/`;
 const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
+const SHIFT_TYPES_TO_COUNT = ["早", "日1", "日2", "中", "遅", "夜"];
+const HOLIDAY_TYPES = ["明", "休", "有"];
 
 // --- 状態管理 ---
 let currentDate = new Date();
@@ -60,7 +62,7 @@ async function buildShiftTable() {
     const month = currentDate.getMonth() + 1;
 
     calendarTitle.textContent = `${year}年 ${month}月`;
-    tableBody.innerHTML = `<tr><td>読み込み中...</td></tr>`; // 描画前に読み込み中表示
+    tableBody.innerHTML = `<tr><td>読み込み中...</td></tr>`;
 
     const { staff, shifts } = await fetchData(year, month);
     if (!staff || staff.length === 0) {
@@ -82,22 +84,35 @@ async function buildShiftTable() {
         headerHTML += `<th class="${dayClass}">${day}</th>`;
         dayOfWeekHTML += `<th class="${dayClass}">${weekdays[dayOfWeek]}</th>`;
     }
+    headerHTML += `<th class="summary-header-col">勤務</th>`;
+    dayOfWeekHTML += `<th class="summary-header-col">休日</th>`;
     tableHeader.innerHTML = headerHTML + `</tr>` + dayOfWeekHTML + `</tr>`;
 
     let bodyHTML = "";
     staff.forEach(staffMember => {
+        const summary = { work_days: 0, holidays: 0 };
+        const staffShifts = shifts.filter(s => s.staff_name === staffMember.name);
+        staffShifts.forEach(shift => {
+            if (SHIFT_TYPES_TO_COUNT.includes(shift.shift_type)) {
+                summary.work_days++;
+            } else if (HOLIDAY_TYPES.includes(shift.shift_type)) {
+                summary.holidays++;
+            }
+        });
+
         bodyHTML += `<tr><td class="staff-name-col">${staffMember.name}</td>`;
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const shiftData = shiftMap[staffMember.name]?.[dateStr];
             const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : new Date(year, month - 1, day).getDay() === 6 ? "day-saturday" : "";
-
             if (shiftData) {
                 bodyHTML += `<td class="shift-cell has-shift ${dayClass}" data-shift-id="${shiftData.id}">${shiftData.shift_type}</td>`;
             } else {
                 bodyHTML += `<td class="shift-cell empty-cell ${dayClass}" data-date="${dateStr}" data-staff-id="${staffMember.id}" data-staff-name="${staffMember.name}"></td>`;
             }
         }
+        bodyHTML += `<td class="summary-data-col">${summary.work_days}</td>`;
+        bodyHTML += `<td class="summary-data-col">${summary.holidays}</td>`;
         bodyHTML += `</tr>`;
     });
     tableBody.innerHTML = bodyHTML;
