@@ -53,17 +53,15 @@ function setupEventListeners() {
     modalCloseBtn.addEventListener('click', closeModal);
     modalBackground.addEventListener('click', closeModal);
     shiftAddForm.addEventListener('submit', handleFormSubmit);
-    prevMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        buildShiftTable();
-    });
-    nextMonthBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        buildShiftTable();
-    });
-    todayBtn.addEventListener('click', () => {
-        currentDate = new Date();
-        buildShiftTable();
+    // ... (ナビゲーションボタンのリスナー) ...
+
+    // ★★★ ここにアコーディオンのイベントリスナーを追加 ★★★
+    tableHeader.addEventListener('click', (event) => {
+        // クリックされた要素が、ID 'accordion-toggle' を持つ要素かどうかをチェック
+        if (event.target.id === 'accordion-toggle') {
+            isAccordionOpen = !isAccordionOpen; // 状態を反転
+            buildShiftTable(); // テーブルを再描画
+        }
     });
 }
 
@@ -131,10 +129,10 @@ async function buildShiftTable() {
     tableBody.innerHTML = bodyHTML;
 
     setupCellClickEvents();
-    document.getElementById('accordion-toggle').addEventListener('click', () => {
-        isAccordionOpen = !isAccordionOpen;
-        buildShiftTable();
-    });
+// buildShiftTable() の一番最後
+    // 3. イベントを設定
+    setupCellClickEvents();
+    // ★★★ ここにあったイベントリスナー設定を削除する ★★★
 }
 
 function calculateSummary(staffShifts) {
