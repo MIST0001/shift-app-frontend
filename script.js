@@ -98,6 +98,7 @@ modalBackground.addEventListener('click', closeModal);
 
 
 // --- 実行 ---
-buildShiftTable();
+// HTMLドキュメントが完全に読み込まれて準備ができてから、メインの処理を開始する
+document.addEventListener('DOMContentLoaded', buildShiftTable);
 
 // ★★★ ここから下は、もう何も書かない ★★★
