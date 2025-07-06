@@ -1,39 +1,87 @@
-// 1. バックエンドAPIのURLを定義
-// 必ず、末尾に /api/shifts をつけてください！
+// --- 設定 ---
 const API_URL = "https://shift-app-api-xgls.onrender.com/api/shifts"; // ← あなたのURLに書き換える！
+const YEAR = 2025;
+const MONTH = 7; // 7月 (JavaScriptでは月は0から始まるので、内部的には6として扱います)
 
-// 2. HTMLの要素を取得
-// id="shift-list" を持つul要素を、プログラムで操作できるように準備します。
-const shiftListElement = document.getElementById("shift-list");
+// --- 要素の取得 ---
+const calendarBody = document.getElementById("calendar-body");
 
-// 3. APIからシフトデータを取得して表示する関数
-async function fetchAndDisplayShifts() {
-    try {
-        // APIにアクセスして、データを取得
-        const response = await fetch(API_URL);
-        const shifts = await response.json(); // データをJSON形式からJavaScriptのオブジェクトに変換
+// --- メインの処理 ---
+async function generateCalendar() {
+    // 1. バックエンドからシフトデータを取得
+    const shiftsData = await fetchShifts();
 
-        // 最初に表示されていた「読み込み中...」の表示を消す
-        shiftListElement.innerHTML = "";
+    // 2. カレンダーのHTMLを生成
+    // まず、月の初日と末日、初日の曜日を取得
+    const firstDay = new Date(YEAR, MONTH - 1, 1);
+    const lastDay = new Date(YEAR, MONTH, 0);
+    const firstDayOfWeek = firstDay.getDay(); // 0:日曜, 1:月曜...
 
-        // 取得したシフトデータを1件ずつループして、HTMLのリスト項目(li)を作成
-        shifts.forEach(shift => {
-            // li要素を新しく作成
-            const listItem = document.createElement("li");
-            
-            // li要素の中に表示するテキストを設定
-            listItem.textContent = `${shift.date} | ${shift.staff_name} | ${shift.shift_type}`;
-            
-            // ul要素(shiftListElement)の中に、作成したli要素を追加
-            shiftListElement.appendChild(listItem);
+    let calendarHTML = "<tr>";
+    
+    // 1日の前の空白セルを生成
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        calendarHTML += "<td></td>";
+    }
+
+    // 1日から末日まで日付セルを生成
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+        const currentDate = new Date(YEAR, MONTH - 1, day);
+        const dayOfWeek = currentDate.getDay();
+        const dateString = `${YEAR}-${String(MONTH).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // その日のシフトデータをフィルタリング
+        const shiftsForDay = shiftsData.filter(s => s.date === dateString);
+
+        // セルの中身を生成
+        calendarHTML += `<td>`;
+        calendarHTML += `<div class="date-number ${getDayClass(dayOfWeek)}">${day}</div>`;
+        calendarHTML += `<div class="shifts-container">`;
+        shiftsForDay.forEach(shift => {
+            calendarHTML += `<div class="shift-item">${shift.staff_name} (${shift.shift_type})</div>`;
         });
+        calendarHTML += `</div>`;
+        calendarHTML += `</td>`;
 
+        // 土曜日だったら行を閉じて、新しい行を開始
+        if (dayOfWeek === 6) {
+            calendarHTML += "</tr><tr>";
+        }
+    }
+    
+    // 月の末日の後の空白セルを生成
+    const lastDayOfWeek = lastDay.getDay();
+    for (let i = lastDayOfWeek; i < 6; i++) {
+        calendarHTML += "<td></td>";
+    }
+    calendarHTML += "</tr>";
+
+    // 3. 生成したHTMLをカレンダーのtbodyに挿入
+    calendarBody.innerHTML = calendarHTML;
+}
+
+// --- ヘルパー関数 ---
+
+// APIからデータを取得する関数
+async function fetchShifts() {
+    try {
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+            throw new Error('APIからのデータ取得に失敗しました');
+        }
+        return await response.json();
     } catch (error) {
-        // エラーが発生した場合の処理
-        shiftListElement.innerHTML = "<li>エラーが発生しました。データの読み込みに失敗しました。</li>";
         console.error("Fetch error:", error);
+        return []; // エラーの場合は空の配列を返す
     }
 }
 
-// 4. ページが読み込まれたら、上記の関数を実行
-fetchAndDisplayShifts();
+// 曜日に応じてCSSクラスを返す関数 (土日の色分け用)
+function getDayClass(dayOfWeek) {
+    if (dayOfWeek === 0) return 'sunday';
+    if (dayOfWeek === 6) return 'saturday';
+    return '';
+}
+
+// --- 実行 ---
+generateCalendar();
