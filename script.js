@@ -4,8 +4,8 @@ const GET_DATA_URL = `${API_URL_BASE}/api/shift-data`;
 const ADD_SHIFT_URL = `${API_URL_BASE}/api/shifts/add`;
 const UPDATE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/update/`;
 const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
-const SHIFT_TYPES_TO_COUNT = ["早", "日1", "日2", "中", "遅", "夜"];
-const HOLIDAY_TYPES = ["明", "休", "有"];
+const SHIFT_TYPES_TO_COUNT = ["早", "日1", "日2", "中", "遅", "夜", "明"];
+const HOLIDAY_TYPES = ["休", "有"];
 
 // --- 状態管理 ---
 let currentDate = new Date();
