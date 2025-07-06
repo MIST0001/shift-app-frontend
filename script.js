@@ -192,10 +192,11 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
             const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
             const statusClass = actualCount < requiredCount ? 'staff-shortage' : actualCount > requiredCount ? 'staff-surplus' : '';
 
+            // ★★★ HTML構造を変更 ★★★
             footerHTML += `<td class="${dayClass}">
                 <div class="staffing-cell ${statusClass}">
                     <input type="number" class="summary-row-input" value="${requiredCount}" min="0" data-date="${dateStr}" data-shift-type="${shiftType}">
-                    <span> / ${actualCount}</span>
+                    <span class="actual-count">(${actualCount})</span>
                 </div>
             </td>`;
         }
@@ -478,8 +479,13 @@ function transformShiftsToMap(shifts) {
 function updateStaffingStatusStyle(inputElement) {
     const cellDiv = inputElement.parentElement;
     const requiredCount = parseInt(inputElement.value, 10);
-    const actualCount = parseInt(cellDiv.querySelector('span').textContent.replace(' / ', ''), 10);
+    const actualCountText = cellDiv.querySelector('.actual-count').textContent;
+    const actualCount = parseInt(actualCountText.replace(/[()]/g, ''), 10);
+    
     cellDiv.classList.remove('staff-shortage', 'staff-surplus');
-    if (actualCount < requiredCount) cellDiv.classList.add('staff-shortage');
-    else if (actualCount > requiredCount) cellDiv.classList.add('staff-surplus');
+    if (actualCount < requiredCount) {
+        cellDiv.classList.add('staff-shortage');
+    } else if (actualCount > requiredCount) {
+        cellDiv.classList.add('staff-surplus');
+    }
 }
