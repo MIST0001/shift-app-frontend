@@ -140,6 +140,30 @@ async function buildShiftTable() {
 // (コードが長くなりすぎるため、この回答では省略しますが、必ず全ての関数を移植してください)
 // --- 実行はDOMContentLoadedに集約済み ---
 
+function calculateSummary(staffShifts) {
+    const summary = {};
+    // まず全項目を0で初期化
+    SUMMARY_ORDER.forEach(key => summary[key] = 0);
+
+    staffShifts.forEach(shift => {
+        const def = SHIFT_DEFINITIONS[shift.shift_type];
+        if (def) {
+            // 各シフトタイプの回数をカウント
+            if(summary[shift.shift_type] !== undefined) {
+                summary[shift.shift_type]++;
+            }
+
+            // 時間数を集計
+            if (def.type === 'day_work') {
+                summary['日勤時間数'] += def.hours;
+            } else if (def.type === 'night_work') {
+                summary['夜勤時間数'] += def.hours;
+            }
+        }
+    });
+    return summary;
+}
+
 function setupCellClickEvents() {
     document.querySelectorAll('.has-shift').forEach(cell => {
         cell.addEventListener('click', (event) => {
