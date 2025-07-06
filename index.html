@@ -75,25 +75,19 @@
         </div>
         <div id="staff-modal-body" class="modal-body">
             <div id="staff-list-container">
-                <!-- JSがここにスタッフ一覧を生成 -->
+                <!-- JSがスタッフ一覧を生成 -->
             </div>
             <hr>
+            <!-- 編集マトリクス用のコンテナ -->
+            <div id="availability-editor-container" style="display: none;">
+                <h3 id="editor-staff-name"></h3>
+                <table id="availability-matrix"></table>
+                <button id="save-availability-btn">保存</button>
+            </div>
+            <!-- スタッフ追加フォームはシンプルに -->
             <form id="add-staff-form">
                 <input type="text" id="new-staff-name" placeholder="新しいスタッフ名" required>
-                <select id="new-staff-gender">
-                    <option value="">性別...</option>
-                    <option value="男性">男性</option>
-                    <option value="女性">女性</option>
-                    <option value="その他">その他</option>
-                </select>
-                <select id="new-staff-employment-type">
-                    <option value="">雇用形態...</option>
-                    <option value="正規職員">正規職員</option>
-                    <option value="嘱託職員">嘱託職員</option>
-                    <option value="派遣職員">派遣職員</option>
-                    <option value="パート">パート</option>
-                </select>
-                <button type="submit">追加</button>
+                <button type="submit">新しいスタッフを追加</button>
             </form>
         </div>
     </div>
