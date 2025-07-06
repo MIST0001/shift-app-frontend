@@ -125,3 +125,16 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
     background-color: #218838;
     border-color: #1e7e34;
 }
+
+/* ==========================================================================
+   危険な操作ボタン (Destructive Action Button)
+   ========================================================================== */
+.clear-btn {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+.clear-btn:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
