@@ -13,7 +13,7 @@ const ADD_STAFF_URL = `${API_URL_BASE}/api/staff/add`;
 const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
 const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
 const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`;
-const GENERATE_SHIFTS_URL = `${API_URL_BASE}/api/shifts/generate`; // ★★★ 追加 ★★★
+const GENERATE_SHIFTS_URL = `${API_URL_BASE}/api/shifts/generate`;
 
 // シフト定義
 const SHIFT_DEFINITIONS = {
@@ -49,7 +49,7 @@ let shiftModalBackground, shiftModalContent, shiftModalTitle, shiftModalBody, sh
 let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn, staffListContainer, addStaffForm;
 let editStaffModalBackground, editStaffModalContent, editStaffForm, editStaffModalCloseBtn;
 let openAvailabilityEditorBtn, backToStaffEditBtn, saveAvailabilityBtn;
-let generateShiftBtn; // ★★★ 追加 ★★★
+let generateShiftBtn;
 
 
 // =================================================================================
@@ -100,7 +100,7 @@ function initializeDOMElements() {
     backToStaffEditBtn = document.getElementById("back-to-staff-edit-btn");
     saveAvailabilityBtn = document.getElementById("save-availability-btn");
     
-    // ★★★ 自動生成ボタンを取得 ★★★
+    // 自動生成ボタン
     generateShiftBtn = document.getElementById('generate-shift-btn'); 
 }
 
@@ -122,13 +122,14 @@ function setupEventListeners() {
     
     // ボタンクリック
     staffManageBtn.addEventListener('click', openStaffModal);
-    generateShiftBtn.addEventListener('click', handleGenerateShifts); // ★★★ 追加 ★★★
+    generateShiftBtn.addEventListener('click', handleGenerateShifts);
 
     // イベント委任
     tableHeader.addEventListener('click', handleTableHeaderClick);
     tableBody.addEventListener('click', handleTableBodyClick);
     tableBody.addEventListener('change', handleTableBodyChange); 
     tableFooter.addEventListener('change', handleTableFooterChange);
+    tableFooter.addEventListener('click', handleTableFooterClick);
 
     // 編集モーダル内の画面切り替えイベント
     openAvailabilityEditorBtn.addEventListener('click', () => {
@@ -238,11 +239,19 @@ function buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth) {
     tableBody.innerHTML = bodyHTML;
 }
 
+// ★★★ フッターのラベルに行全体調整ボタンを追加 ★★★
 function buildTableFooter(year, month, shifts, daysInMonth) {
     let footerHTML = '';
 
     DAILY_COUNT_TARGETS.forEach(shiftType => {
-        footerHTML += `<tr><th class="summary-row-label">${shiftType}</th>`;
+        footerHTML += `<tr>
+            <th class="summary-row-label">
+                <div class="summary-header-container">
+                    <button class="adjust-btn-row" data-type="${shiftType}" data-amount="-1">−</button>
+                    <span>${shiftType}</span>
+                    <button class="adjust-btn-row" data-type="${shiftType}" data-amount="1">+</button>
+                </div>
+            </th>`;
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const requiredCount = requiredStaffing[dateStr]?.[shiftType] || 0;
@@ -263,7 +272,14 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
         footerHTML += `</tr>`;
     });
 
-    footerHTML += `<tr><th class="summary-row-label">合計</th>`;
+    footerHTML += `<tr>
+        <th class="summary-row-label">
+            <div class="summary-header-container">
+                <button class="adjust-btn-row" data-type="合計" data-amount="-1">−</button>
+                <span>合計</span>
+                <button class="adjust-btn-row" data-type="合計" data-amount="1">+</button>
+            </div>
+        </th>`;
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const totalCount = shifts.filter(s => s.date === dateStr && SHIFT_DEFINITIONS[s.shift_type]?.type.includes('work')).length;
@@ -474,6 +490,60 @@ function handleTableFooterChange(event) {
     }
 }
 
+// ★★★ フッターのクリックイベントハンドラを更新 ★★★
+function handleTableFooterClick(event) {
+    // Case 1: 行全体の日数調整ボタン
+    if (event.target.classList.contains('adjust-btn-row')) {
+        const type = event.target.dataset.type;
+        const amount = parseInt(event.target.dataset.amount, 10);
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            if (!requiredStaffing[dateStr]) {
+                requiredStaffing[dateStr] = {};
+            }
+
+            if (type === '合計') {
+                // 仮のロジック：最初の勤務タイプを増減させる
+                const targetShift = DAILY_COUNT_TARGETS[0]; 
+                requiredStaffing[dateStr][targetShift] = (requiredStaffing[dateStr][targetShift] || 0) + amount;
+                if (requiredStaffing[dateStr][targetShift] < 0) requiredStaffing[dateStr][targetShift] = 0;
+            } else {
+                const currentValue = requiredStaffing[dateStr][type] || 0;
+                requiredStaffing[dateStr][type] = Math.max(0, currentValue + amount);
+            }
+        }
+        buildShiftTable();
+        return;
+    }
+
+    // Case 2: ラベルクリックによるハイライト
+    const labelSpan = event.target.closest('.summary-row-label span');
+    if (labelSpan) {
+        const label = labelSpan.closest('.summary-row-label');
+        const shiftType = labelSpan.textContent;
+        if (!DAILY_COUNT_TARGETS.includes(shiftType)) return;
+
+        const isActive = label.classList.contains('highlight-active');
+
+        document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
+        document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+
+        if (!isActive) {
+            label.classList.add('highlight-active');
+            document.querySelectorAll('#table-body .has-shift').forEach(cell => {
+                if (cell.textContent === shiftType) {
+                    cell.classList.add('highlight');
+                }
+            });
+        }
+    }
+}
+
 async function handleShiftFormSubmit(event) {
     event.preventDefault();
     const form = event.target;
@@ -574,7 +644,7 @@ async function handleDeleteStaff(staffId) {
 }
 
 // =================================================================================
-// --- シフト自動作成 (Shift Generation) --- ★★★ 新規セクション ★★★
+// --- シフト自動作成 (Shift Generation) ---
 // =================================================================================
 
 async function handleGenerateShifts() {
@@ -597,6 +667,7 @@ async function handleGenerateShifts() {
             body: JSON.stringify({
                 year: year,
                 month: month,
+                required_staffing: requiredStaffing 
             }),
         });
 
