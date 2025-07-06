@@ -47,6 +47,26 @@ input[type=number] { -moz-appearance: textfield; }
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* ==========================================================================
+   人員の過不足 (Staff Shortage/Surplus)
+   ========================================================================== */
+.staff-shortage input {
+    background-color: #ffebee; /* 薄い赤色 */
+    color: #c62828;
+    border-color: #ef9a9a;
+}
+.staff-surplus input {
+    background-color: #e8f5e9; /* 薄い緑色 */
+    border-color: #a5d6a7;
+}
+.staffing-cell.staff-shortage .actual-count {
+    color: #e53935;
+    font-weight: bold;
+}
+.staffing-cell.staff-surplus .actual-count {
+    color: #43a047;
+}
+
+/* ==========================================================================
    集計列 (Summary Columns)
    ========================================================================== */
 .summary-main-header, .summary-main-col { background-color: #f8f9fa; font-weight: bold; min-width: 100px; position: sticky; right: 0; z-index: 1; border-left: 1px solid #ccc; }
@@ -91,3 +111,17 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 #availability-matrix th, #availability-matrix td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
 #availability-matrix .availability-toggle { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid #ccc; background-color: #eee; }
 #availability-matrix .availability-toggle.is-available { background-color: #2ecc71; border-color: #27ae60; }
+
+/* ==========================================================================
+   特別機能ボタン (Special Feature Button)
+   ========================================================================== */
+.generate-btn {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+    font-weight: bold;
+}
+.generate-btn:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
