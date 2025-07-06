@@ -147,3 +147,21 @@ h1 {
 .header-nav button:hover {
     background-color: #f2f2f2;
 }
+/* --- ここから集計列用のスタイルを追加 --- */
+.summary-header-col, .summary-data-col {
+    background-color: #f8f9fa; /* 少し薄いグレー */
+    font-weight: bold;
+    min-width: 80px; /* 集計列の幅を少し広めに */
+}
+
+/* 集計列は右端に固定（スクロールしても見えるように） */
+.summary-header-col {
+    position: sticky;
+    right: 0;
+    z-index: 3 !important; /* ヘッダーの左上角より手前に来るように */
+}
+.summary-data-col {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+}
