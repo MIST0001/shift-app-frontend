@@ -147,6 +147,8 @@ h1 {
     bottom: 0;
     z-index: 2;
     border-top: 2px solid #adb5bd;
+    /* ★★★ パディングを調整して高さを抑える ★★★ */
+    padding: 4px 2px;
 }
 
 .summary-row-label {
@@ -154,16 +156,33 @@ h1 {
     position: sticky;
     left: 0;
     background-color: #e9ecef;
-    z-index: 3 !important; /* フッターの中でも最前面に */
+    z-index: 3 !important;
+    /* ★★★ パディングを微調整 ★★★ */
+    padding-left: 0.5em;
 }
 
+/* ★★★ 入力欄のスタイルをコンパクトに ★★★ */
 .summary-row-input {
-    width: 45px;
+    width: 30px; /* 幅を狭くする */
+    height: 22px; /* 高さを指定 */
     text-align: center;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px;
+    border-radius: 3px;
+    font-size: 0.9em; /* 文字を少し小さく */
+    /* 上下の余白をリセット */
+    margin-top: 0;
+    margin-bottom: 2px;
 }
+
+/* ★★★ 実績人数を表示するspanのスタイルを追加 ★★★ */
+.actual-count {
+    display: block; /* 改行させる */
+    font-size: 0.8em;
+    color: #555;
+    font-weight: normal;
+    line-height: 1;
+}
+
 /* Firefoxでの入力欄の矢印を非表示に */
 input[type=number] {
   -moz-appearance: textfield;
