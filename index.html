@@ -29,7 +29,7 @@
         </table>
     </div>
 
-    <!-- ポップアップ（モーダル） -->
+    <!-- シフト追加/詳細ポップアップ（モーダル） -->
     <div id="modal-background" class="modal-background"></div>
     <div id="modal-content" class="modal-content">
         <div class="modal-header">
@@ -65,8 +65,7 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
-                <!-- 既存のシフト用モーダルの下あたりに追加 -->
+    <!-- スタッフ管理ポップアップ（モーダル） -->
     <div id="staff-modal-background" class="modal-background"></div>
     <div id="staff-modal-content" class="modal-content">
         <div class="modal-header">
@@ -78,7 +77,7 @@
                 <!-- JSがスタッフ一覧を生成 -->
             </div>
             <hr>
-            <!-- 編集マトリクス用のコンテナ -->
+            <!-- 勤務希望編集マトリクス用のコンテナ -->
             <div id="availability-editor-container" style="display: none;">
                 <h3 id="editor-staff-name"></h3>
                 <table id="availability-matrix"></table>
@@ -100,9 +99,61 @@
                     <option value="派遣職員">派遣職員</option>
                     <option value="パート">パート</option>
                 </select>
+                <select id="new-staff-experience" required>
+                    <option value="">経験...</option>
+                    <option value="新人">新人</option>
+                    <option value="中堅">中堅</option>
+                    <option value="ベテラン">ベテラン</option>
+                </select>
                 <button type="submit">追加</button>
             </form>
         </div>
     </div>
+
+    <!-- スタッフ情報編集ポップアップ（モーダル） -->
+    <div id="edit-staff-modal-background" class="modal-background"></div>
+    <div id="edit-staff-modal-content" class="modal-content">
+        <div class="modal-header">
+            <h2>スタッフ情報編集</h2>
+            <button id="edit-staff-modal-close-btn" class="modal-close-btn">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="edit-staff-form">
+                <input type="hidden" id="edit-staff-id">
+                <div>
+                    <label for="edit-staff-name">名前:</label>
+                    <input type="text" id="edit-staff-name" required>
+                </div>
+                <div>
+                    <label for="edit-staff-gender">性別:</label>
+                    <select id="edit-staff-gender">
+                        <option value="男性">男性</option>
+                        <option value="女性">女性</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="edit-staff-employment-type">雇用形態:</label>
+                    <select id="edit-staff-employment-type">
+                        <option value="正規職員">正規職員</option>
+                        <option value="嘱託職員">嘱託職員</option>
+                        <option value="派遣職員">派遣職員</option>
+                        <option value="パート">パート</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="edit-staff-experience">経験:</label>
+                    <select id="edit-staff-experience">
+                        <option value="新人">新人</option>
+                        <option value="中堅">中堅</option>
+                        <option value="ベテラン">ベテラン</option>
+                    </select>
+                </div>
+                <button type="submit">更新する</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
