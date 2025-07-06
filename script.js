@@ -104,7 +104,7 @@ function openAddModal(staffId, staffName, date) {
     document.getElementById('form-staff-name').textContent = staffName;
     document.getElementById('form-date').textContent = date;
     document.getElementById('form-staff-id').value = staffId;
-    document.getElementById('form-shift-type').value = '日'; // デフォルト値
+    document.getElementById('form-shift-type').value = '日2'; // デフォルト値
     document.getElementById('form-notes').value = '';
 
     modalBackground.classList.add('is-visible');
