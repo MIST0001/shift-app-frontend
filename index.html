@@ -9,40 +9,31 @@
 <body>
     <div class="header-nav">
         <button id="prev-month-btn">< 前の月</button>
-        <h1 id="calendar-title"></h1> <!-- タイトルはJSで動的に設定 -->
+        <h1 id="calendar-title"></h1>
         <button id="next-month-btn">次の月 ></button>
         <button id="today-btn">今月</button>
     </div>
-    
+
     <div class="table-container">
         <table class="shift-table">
             <thead id="table-header">
-                <!-- JavaScriptがここに日付ヘッダーを生成します -->
+                <!-- JSが生成 -->
             </thead>
             <tbody id="table-body">
-                <!-- JavaScriptがここにスタッフのシフト行を生成します -->
+                <!-- JSが生成 -->
             </tbody>
         </table>
     </div>
 
-    <!-- ポップアップ（モーダル）の背景 -->
+    <!-- ポップアップ（モーダル） -->
     <div id="modal-background" class="modal-background"></div>
-    
-    <!-- ポップアップ本体 -->
     <div id="modal-content" class="modal-content">
         <div class="modal-header">
-            <h2 id="modal-title">シフト詳細</h2>
+            <h2 id="modal-title"></h2>
             <button id="modal-close-btn" class="modal-close-btn">×</button>
         </div>
-               <!-- id="modal-body" の部分 -->
         <div id="modal-body" class="modal-body">
-            <!-- シフト詳細表示用の div -->
-        <div id="shift-detail-view">
-            <!-- ここに詳細が表示される -->
-            <button id="edit-shift-btn">編集</button> <!-- ★★★ この行を追加 ★★★ -->
-        </div>
-
-            <!-- ★★★ シフト登録フォーム用の div (最初は非表示) ★★★ -->
+            <div id="shift-detail-view"></div>
             <form id="shift-add-form" style="display: none;">
                 <p><strong>スタッフ:</strong> <span id="form-staff-name"></span></p>
                 <p><strong>日付:</strong> <span id="form-date"></span></p>
@@ -50,10 +41,10 @@
                     <label for="form-shift-type">勤務種類:</label>
                     <select id="form-shift-type" required>
                         <option value="早">早</option>
-                        <option value="日1">日1</option>  <!-- 追加 -->
-                        <option value="日2">日2</option>  <!-- 追加 -->
+                        <option value="日1">日1</option>
+                        <option value="日2">日2</option>
+                        <option value="中">中</option>
                         <option value="遅">遅</option>
-                        <option value="中">中</option>    <!-- 追加 -->
                         <option value="夜">夜</option>
                         <option value="明">明</option>
                         <option value="休">休</option>
@@ -65,12 +56,11 @@
                     <input type="text" id="form-notes">
                 </div>
                 <input type="hidden" id="form-staff-id">
-                <button type="submit">登録する</button>
+                <button type="submit">保存する</button>
             </form>
         </div>
     </div>
 
-    <!-- ★★★ スクリプトはここに1回だけ書きます ★★★ -->
     <script src="script.js"></script>
 </body>
 </html>
