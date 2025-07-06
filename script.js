@@ -28,8 +28,11 @@ let currentShifts = [];
 
 // --- 初期化 & メイン処理 ---
 document.addEventListener('DOMContentLoaded', () => {
+    // まずDOM要素を取得
     initializeDOMElements();
+    // 次に、取得した要素にイベントリスナーを一度だけ設定
     setupEventListeners();
+    // 最後に、最初のテーブルを描画
     buildShiftTable();
 });
 
@@ -50,12 +53,29 @@ function initializeDOMElements() {
 }
 
 function setupEventListeners() {
+    // ポップアップを閉じるイベント
     modalCloseBtn.addEventListener('click', closeModal);
     modalBackground.addEventListener('click', closeModal);
-    shiftAddForm.addEventListener('submit', handleFormSubmit);
-    // ... (ナビゲーションボタンのリスナー) ...
 
-    // ★★★ ここにアコーディオンのイベントリスナーを追加 ★★★
+    // シフト登録フォームの送信イベント
+    shiftAddForm.addEventListener('submit', handleFormSubmit);
+
+    // ナビゲーションボタンのイベント
+    prevMonthBtn.addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        buildShiftTable();
+    });
+    nextMonthBtn.addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        buildShiftTable();
+    });
+    todayBtn.addEventListener('click', () => {
+        currentDate = new Date();
+        buildShiftTable();
+    });
+
+    // ★★★ アコーディオンのイベントリスナーをここに集約 ★★★
+    // tableHeaderは再描画されないので、ここに設定するのが正しい
     tableHeader.addEventListener('click', (event) => {
         // クリックされた要素が、ID 'accordion-toggle' を持つ要素かどうかをチェック
         if (event.target.id === 'accordion-toggle') {
