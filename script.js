@@ -1,67 +1,124 @@
-// --- 設定 ---
+// =================================================================================
+// --- 設定 (Settings) ---
+// =================================================================================
+
 const API_URL_BASE = "https://shift-app-api-xgls.onrender.com";
+
+// シフト関連API
 const GET_DATA_URL = `${API_URL_BASE}/api/shift-data`;
 const ADD_SHIFT_URL = `${API_URL_BASE}/api/shifts/add`;
 const UPDATE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/update/`;
 const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
 
+// スタッフ関連API
+const ADD_STAFF_URL = `${API_URL_BASE}/api/staff/add`;
+const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
+const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
+
+// シフト定義
 const SHIFT_DEFINITIONS = {
     "早": { type: 'day_work', hours: 8 }, "日1": { type: 'day_work', hours: 8 }, "日2": { type: 'day_work', hours: 8 },
     "中": { type: 'day_work', hours: 8 }, "遅": { type: 'day_work', hours: 8 }, "夜": { type: 'night_work', hours: 16 },
     "明": { type: 'day_work', hours: 0 }, "休": { type: 'holiday', hours: 0 }, "有": { type: 'paid_holiday', hours: 0 }
 };
+
+// 集計表の表示順
 const SUMMARY_ORDER = ["早", "日1", "日2", "中", "遅", "夜", "明", "日勤時間数", "夜勤時間数", "休", "有"];
 
-// --- 状態管理 ---
+
+// =================================================================================
+// --- 状態管理 (State Management) ---
+// =================================================================================
+
 let currentDate = new Date();
 let isAccordionOpen = false;
 let currentShifts = [];
+let currentStaff = [];
 
-// --- DOM要素 ---
-let tableHeader, tableBody, modalBackground, modalContent, modalTitle, modalBody, modalCloseBtn, shiftDetailView, shiftAddForm, calendarTitle, prevMonthBtn, nextMonthBtn, todayBtn;
 
-// --- 初期化 ---
+// =================================================================================
+// --- DOM要素 (DOM Elements) ---
+// =================================================================================
+
+// カレンダー & テーブル
+let calendarTitle, prevMonthBtn, nextMonthBtn, todayBtn, tableHeader, tableBody;
+
+// シフト用モーダル
+let shiftModalBackground, shiftModalContent, shiftModalTitle, shiftModalBody, shiftModalCloseBtn, shiftDetailView, shiftAddForm;
+
+// スタッフ管理用モーダル
+let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn, staffListContainer, addStaffForm;
+
+
+// =================================================================================
+// --- 初期化 (Initialization) ---
+// =================================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeDOMElements();
     setupEventListeners();
     buildShiftTable();
 });
 
+/**
+ * 全てのDOM要素を取得してグローバル変数に格納する
+ */
 function initializeDOMElements() {
-    tableHeader = document.getElementById("table-header");
-    tableBody = document.getElementById("table-body");
-    // ... (他の要素も同様に取得)
-    modalBackground = document.getElementById("modal-background");
-    modalContent = document.getElementById("modal-content");
-    modalTitle = document.getElementById("modal-title");
-    modalBody = document.getElementById("modal-body");
-    modalCloseBtn = document.getElementById("modal-close-btn");
-    shiftDetailView = document.getElementById("shift-detail-view");
-    shiftAddForm = document.getElementById("shift-add-form");
+    // カレンダー & テーブル
     calendarTitle = document.getElementById("calendar-title");
     prevMonthBtn = document.getElementById("prev-month-btn");
     nextMonthBtn = document.getElementById("next-month-btn");
     todayBtn = document.getElementById("today-btn");
+    tableHeader = document.getElementById("table-header");
+    tableBody = document.getElementById("table-body");
+
+    // シフト用モーダル
+    shiftModalBackground = document.getElementById("modal-background");
+    shiftModalContent = document.getElementById("modal-content");
+    shiftModalTitle = document.getElementById("modal-title");
+    shiftModalBody = document.getElementById("modal-body");
+    shiftModalCloseBtn = document.getElementById("modal-close-btn");
+    shiftDetailView = document.getElementById("shift-detail-view");
+    shiftAddForm = document.getElementById("shift-add-form");
+
+    // スタッフ管理用モーダル
+    staffManageBtn = document.getElementById("staff-manage-btn");
+    staffModalBackground = document.getElementById("staff-modal-background");
+    staffModalContent = document.getElementById("staff-modal-content");
+    staffModalCloseBtn = document.getElementById("staff-modal-close-btn");
+    staffListContainer = document.getElementById("staff-list-container");
+    addStaffForm = document.getElementById("add-staff-form");
 }
 
+/**
+ * 全てのイベントリスナーを設定する
+ */
 function setupEventListeners() {
-    // ポップアップやナビゲーションのリスナー
-    modalCloseBtn.addEventListener('click', closeModal);
-    modalBackground.addEventListener('click', closeModal);
-    shiftAddForm.addEventListener('submit', handleFormSubmit);
+    // カレンダーナビゲーション
     prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); buildShiftTable(); });
     nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); buildShiftTable(); });
     todayBtn.addEventListener('click', () => { currentDate = new Date(); buildShiftTable(); });
 
-    // イベント委任でアコーディオンのクリックを処理
+    // シフト用モーダル
+    shiftModalCloseBtn.addEventListener('click', closeShiftModal);
+    shiftModalBackground.addEventListener('click', closeShiftModal);
+    shiftAddForm.addEventListener('submit', handleShiftFormSubmit);
+
+    // スタッフ管理用モーダル
+    staffManageBtn.addEventListener('click', openStaffModal);
+    staffModalCloseBtn.addEventListener('click', closeStaffModal);
+    staffModalBackground.addEventListener('click', closeStaffModal);
+    addStaffForm.addEventListener('submit', handleAddStaff);
+
+    // イベント委任：アコーディオン開閉
     tableHeader.addEventListener('click', (event) => {
         if (event.target.id === 'accordion-toggle') {
             isAccordionOpen = !isAccordionOpen;
-            buildShiftTable();
+            buildShiftTable(); // アコーディオンの状態を反映して再描画
         }
     });
 
-    // イベント委任でセルのクリックを処理
+    // イベント委任：シフトセルクリック
     tableBody.addEventListener('click', (event) => {
         const cell = event.target.closest('td');
         if (!cell) return;
@@ -69,46 +126,68 @@ function setupEventListeners() {
         if (cell.classList.contains('has-shift')) {
             const shiftId = parseInt(cell.dataset.shiftId, 10);
             const selectedShift = currentShifts.find(s => s.id === shiftId);
-            if (selectedShift) openDetailModal(selectedShift);
+            if (selectedShift) openShiftDetailModal(selectedShift);
         } else if (cell.classList.contains('empty-cell')) {
             const { date, staffId, staffName } = cell.dataset;
-            openAddModal(staffId, staffName, date);
+            openShiftAddModal(staffId, staffName, date);
         }
     });
 }
 
 
-// --- メイン描画処理 ---
+// =================================================================================
+// --- メイン描画処理 (Main Rendering) ---
+// =================================================================================
+
+/**
+ * サーバーからデータを取得し、シフト表全体を構築・再描画する
+ */
 async function buildShiftTable() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
     calendarTitle.textContent = `${year}年 ${month}月`;
-    tableBody.innerHTML = `<tr><td colspan="40">読み込み中...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="${33 + SUMMARY_ORDER.length}">読み込み中...</td></tr>`;
 
     const { staff, shifts } = await fetchData(year, month);
     if (!staff || staff.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="40">スタッフデータがありません。</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="${33 + SUMMARY_ORDER.length}">スタッフデータがありません。スタッフを登録してください。</td></tr>`;
         return;
     }
     
+    currentStaff = staff;
     currentShifts = shifts;
     const shiftMap = transformShiftsToMap(shifts);
     const daysInMonth = new Date(year, month, 0).getDate();
 
     // ヘッダー生成
+    buildTableHeader(year, month, daysInMonth);
+
+    // ボディ生成
+    buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth);
+}
+
+/**
+ * シフト表のヘッダーを生成する
+ */
+function buildTableHeader(year, month, daysInMonth) {
     let headerHTML = `<tr><th class="header-staff-col">氏名</th>`;
     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
-        headerHTML += `<th class="${date.getDay() === 0 ? "day-sunday" : date.getDay() === 6 ? "day-saturday" : ""}">${day}<br>${weekdays[date.getDay()]}</th>`;
+        const dayClass = date.getDay() === 0 ? "day-sunday" : date.getDay() === 6 ? "day-saturday" : "";
+        headerHTML += `<th class="${dayClass}">${day}<br>${weekdays[date.getDay()]}</th>`;
     }
     headerHTML += `<th class="summary-main-header"><div class="summary-header-container"><span>総時間</span><button id="accordion-toggle" class="accordion-toggle">${isAccordionOpen ? '−' : '+'}</button></div></th>`;
     SUMMARY_ORDER.forEach(key => {
         headerHTML += `<th class="summary-detail-header ${isAccordionOpen ? 'visible' : ''}">${key}</th>`;
     });
     tableHeader.innerHTML = headerHTML + `</tr>`;
+}
 
-    // ボディ生成
+/**
+ * シフト表のボディ（各スタッフの行）を生成する
+ */
+function buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth) {
     let bodyHTML = "";
     staff.forEach(staffMember => {
         const summary = calculateSummary(shifts.filter(s => s.staff_name === staffMember.name));
@@ -135,25 +214,271 @@ async function buildShiftTable() {
 }
 
 
-// --- ヘルパー関数群 ---
-// (ここに、以前の完成版から handleFormSubmit, モーダル関連, API通信, データ変換の各関数をそのままコピー＆ペーストします)
-// (コードが長くなりすぎるため、この回答では省略しますが、必ず全ての関数を移植してください)
-// --- 実行はDOMContentLoadedに集約済み ---
+// =================================================================================
+// --- シフト関連モーダル (Shift Modals) ---
+// =================================================================================
 
+function openShiftDetailModal(shift) {
+    shiftAddForm.style.display = 'none';
+    shiftDetailView.style.display = 'block';
+    shiftModalTitle.textContent = `${shift.date} のシフト詳細`;
+    shiftDetailView.innerHTML = `<p><strong>スタッフ:</strong> ${shift.staff_name}</p><p><strong>勤務種類:</strong> ${shift.shift_type}</p><p><strong>備考:</strong> ${shift.notes || '特になし'}</p><div class="modal-buttons"><button id="edit-shift-btn">編集</button><button id="delete-shift-btn" class="delete-btn">削除</button></div>`;
+    
+    document.getElementById('edit-shift-btn').addEventListener('click', () => openShiftEditModal(shift));
+    document.getElementById('delete-shift-btn').addEventListener('click', async () => {
+        if (confirm('このシフトを本当に削除しますか？')) {
+            const success = await deleteShiftApi(shift.id);
+            if (success) { closeShiftModal(); buildShiftTable(); } else { alert('シフトの削除に失敗しました。'); }
+        }
+    });
+    
+    shiftModalBackground.classList.add('is-visible');
+    shiftModalContent.classList.add('is-visible');
+}
+
+function openShiftAddModal(staffId, staffName, date) {
+    shiftDetailView.style.display = 'none';
+    shiftAddForm.style.display = 'block';
+    shiftModalTitle.textContent = '新規シフト登録';
+    shiftAddForm.dataset.shiftId = '';
+    document.getElementById('form-staff-name').textContent = staffName;
+    document.getElementById('form-date').textContent = date;
+    document.getElementById('form-staff-id').value = staffId;
+    document.getElementById('form-shift-type').value = '日1';
+    document.getElementById('form-notes').value = '';
+    document.getElementById('form-staff-name').parentElement.style.display = 'block';
+    document.getElementById('form-date').parentElement.style.display = 'block';
+    
+    shiftModalBackground.classList.add('is-visible');
+    shiftModalContent.classList.add('is-visible');
+}
+
+function openShiftEditModal(shift) {
+    shiftDetailView.style.display = 'none';
+    shiftAddForm.style.display = 'block';
+    shiftModalTitle.textContent = 'シフト編集';
+    shiftAddForm.dataset.shiftId = shift.id;
+    document.getElementById('form-staff-name').textContent = shift.staff_name;
+    document.getElementById('form-date').textContent = shift.date;
+    document.getElementById('form-shift-type').value = shift.shift_type;
+    document.getElementById('form-notes').value = shift.notes || '';
+    document.getElementById('form-staff-name').parentElement.style.display = 'block';
+    document.getElementById('form-date').parentElement.style.display = 'block';
+}
+
+function closeShiftModal() {
+    shiftModalBackground.classList.remove('is-visible');
+    shiftModalContent.classList.remove('is-visible');
+}
+
+
+// =================================================================================
+// --- スタッフ管理モーダル & UI (Staff Management Modal & UI) ---
+// =================================================================================
+
+function openStaffModal() {
+    renderStaffList();
+    staffModalBackground.classList.add('is-visible');
+    staffModalContent.classList.add('is-visible');
+}
+
+function closeStaffModal() {
+    staffModalBackground.classList.remove('is-visible');
+    staffModalContent.classList.remove('is-visible');
+}
+
+/**
+ * 現在のスタッフ一覧をモーダル内に描画する
+ */
+function renderStaffList() {
+    let listHTML = '<ul>';
+    currentStaff.forEach(staff => {
+        listHTML += `<li>
+            <span>${staff.name}</span>
+            <div>
+                <button onclick="handleEditStaff(${staff.id}, '${staff.name}')">編集</button>
+                <button onclick="handleDeleteStaff(${staff.id})" class="delete-btn">削除</button>
+            </div>
+        </li>`;
+    });
+    listHTML += '</ul>';
+    staffListContainer.innerHTML = listHTML;
+}
+
+
+// =================================================================================
+// --- イベントハンドラ (Event Handlers) ---
+// =================================================================================
+
+/**
+ * シフトの追加・更新フォームの送信を処理する
+ */
+async function handleShiftFormSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const shiftId = form.dataset.shiftId;
+    let success = false;
+
+    if (shiftId) { // 更新の場合
+        const shiftData = { 
+            shift_type: document.getElementById('form-shift-type').value, 
+            notes: document.getElementById('form-notes').value 
+        };
+        success = await updateShiftApi(shiftId, shiftData);
+    } else { // 新規追加の場合
+        const shiftData = { 
+            staff_id: document.getElementById('form-staff-id').value, 
+            date: document.getElementById('form-date').textContent, 
+            shift_type: document.getElementById('form-shift-type').value, 
+            notes: document.getElementById('form-notes').value 
+        };
+        success = await addShiftApi(shiftData);
+    }
+
+    if (success) {
+        closeShiftModal();
+        buildShiftTable();
+    } else {
+        alert(`シフトの${shiftId ? '更新' : '登録'}に失敗しました。`);
+    }
+}
+
+/**
+ * スタッフ追加フォームの送信を処理する
+ */
+async function handleAddStaff(event) {
+    event.preventDefault();
+    const newNameInput = document.getElementById('new-staff-name');
+    const newName = newNameInput.value.trim();
+    if (!newName) return;
+    
+    const success = await addStaffApi({ name: newName });
+    if (success) {
+        newNameInput.value = '';
+        await buildShiftTable(); // テーブルを再描画してスタッフ一覧を更新
+        renderStaffList();       // モーダル内のリストも更新
+    } else {
+        alert('スタッフの追加に失敗しました。');
+    }
+}
+
+/**
+ * スタッフ名編集の処理を行う
+ */
+async function handleEditStaff(staffId, currentName) {
+    const newName = prompt('新しいスタッフ名を入力してください:', currentName);
+    if (newName && newName.trim() !== '' && newName !== currentName) {
+        const success = await updateStaffApi(staffId, { name: newName.trim() });
+        if (success) {
+            await buildShiftTable();
+            renderStaffList();
+        } else {
+            alert('スタッフ名の更新に失敗しました。');
+        }
+    }
+}
+
+/**
+ * スタッフ削除の処理を行う
+ */
+async function handleDeleteStaff(staffId) {
+    if (confirm('このスタッフを本当に削除しますか？\n関連するシフトがあると削除できません。')) {
+        const success = await deleteStaffApi(staffId);
+        if (success) {
+            await buildShiftTable();
+            renderStaffList();
+        } else {
+            alert('スタッフの削除に失敗しました。関連シフトがないか確認してください。');
+        }
+    }
+}
+
+
+// =================================================================================
+// --- API通信 (API Communications) ---
+// =================================================================================
+
+// --- Shift API ---
+async function fetchData(year, month) {
+    try {
+        const response = await fetch(`${GET_DATA_URL}?year=${year}&month=${month}`);
+        if (!response.ok) throw new Error('API request failed');
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch data:', error);
+        tableBody.innerHTML = `<tr><td colspan="${33 + SUMMARY_ORDER.length}">データの読み込みに失敗しました。</td></tr>`;
+        return { staff: [], shifts: [] };
+    }
+}
+
+async function addShiftApi(shiftData) {
+    return await postData(ADD_SHIFT_URL, shiftData, 'Failed to add shift');
+}
+
+async function updateShiftApi(shiftId, shiftData) {
+    return await postData(`${UPDATE_SHIFT_URL_TEMPLATE}${shiftId}`, shiftData, 'Failed to update shift', 'PUT');
+}
+
+async function deleteShiftApi(shiftId) {
+    return await postData(`${DELETE_SHIFT_URL_TEMPLATE}${shiftId}`, null, 'Failed to delete shift', 'DELETE');
+}
+
+// --- Staff API ---
+async function addStaffApi(staffData) {
+    return await postData(ADD_STAFF_URL, staffData, 'Failed to add staff');
+}
+
+async function updateStaffApi(staffId, staffData) {
+    return await postData(`${UPDATE_STAFF_URL_TEMPLATE}${staffId}`, staffData, 'Failed to update staff', 'PUT');
+}
+
+async function deleteStaffApi(staffId) {
+    return await postData(`${DELETE_STAFF_URL_TEMPLATE}${staffId}`, null, 'Failed to delete staff', 'DELETE');
+}
+
+/**
+ * APIへのPOST/PUT/DELETEリクエストを共通化する関数
+ */
+async function postData(url, data, errorMessage, method = 'POST') {
+    try {
+        const options = {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        if (data) {
+            options.body = JSON.stringify(data);
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            console.error(`${errorMessage}: ${errorData.message}`);
+            throw new Error(`${errorMessage}: ${errorData.message}`);
+        }
+        return true;
+    } catch (error) {
+        console.error(errorMessage, error);
+        return false;
+    }
+}
+
+
+// =================================================================================
+// --- ヘルパー関数 (Helper Functions) ---
+// =================================================================================
+
+/**
+ * スタッフごとのシフト集計を計算する
+ */
 function calculateSummary(staffShifts) {
     const summary = {};
-    // まず全項目を0で初期化
-    SUMMARY_ORDER.forEach(key => summary[key] = 0);
+    SUMMARY_ORDER.forEach(key => summary[key] = 0); // 全項目を0で初期化
 
     staffShifts.forEach(shift => {
         const def = SHIFT_DEFINITIONS[shift.shift_type];
         if (def) {
-            // 各シフトタイプの回数をカウント
             if(summary[shift.shift_type] !== undefined) {
                 summary[shift.shift_type]++;
             }
-
-            // 時間数を集計
             if (def.type === 'day_work') {
                 summary['日勤時間数'] += def.hours;
             } else if (def.type === 'night_work') {
@@ -164,126 +489,10 @@ function calculateSummary(staffShifts) {
     return summary;
 }
 
-function setupCellClickEvents() {
-    document.querySelectorAll('.has-shift').forEach(cell => {
-        cell.addEventListener('click', (event) => {
-            const shiftId = parseInt(event.target.dataset.shiftId, 10);
-            const selectedShift = currentShifts.find(s => s.id === shiftId);
-            if (selectedShift) openDetailModal(selectedShift);
-        });
-    });
-    document.querySelectorAll('.empty-cell').forEach(cell => {
-        cell.addEventListener('click', (event) => {
-            const { date, staffId, staffName } = event.target.dataset;
-            openAddModal(staffId, staffName, date);
-        });
-    });
-}
-async function handleFormSubmit(event) {
-    event.preventDefault();
-    const form = event.target;
-    const shiftId = form.dataset.shiftId;
-    let success = false;
-    if (shiftId) {
-        const shiftData = { shift_type: document.getElementById('form-shift-type').value, notes: document.getElementById('form-notes').value };
-        success = await updateShiftData(shiftId, shiftData);
-    } else {
-        const shiftData = { staff_id: document.getElementById('form-staff-id').value, date: document.getElementById('form-date').textContent, shift_type: document.getElementById('form-shift-type').value, notes: document.getElementById('form-notes').value };
-        success = await addShiftData(shiftData);
-    }
-    if (success) {
-        closeModal();
-        buildShiftTable();
-    } else {
-        alert(`シフトの${shiftId ? '更新' : '登録'}に失敗しました。`);
-    }
-}
-function openDetailModal(shift) {
-    shiftAddForm.style.display = 'none';
-    shiftDetailView.style.display = 'block';
-    modalTitle.textContent = `${shift.date} のシフト詳細`;
-    shiftDetailView.innerHTML = `<p><strong>スタッフ:</strong> ${shift.staff_name}</p><p><strong>勤務種類:</strong> ${shift.shift_type}</p><p><strong>備考:</strong> ${shift.notes || '特になし'}</p><div class="modal-buttons"><button id="edit-shift-btn">編集</button><button id="delete-shift-btn" class="delete-btn">削除</button></div>`;
-    document.getElementById('edit-shift-btn').addEventListener('click', () => { openEditModal(shift); });
-    document.getElementById('delete-shift-btn').addEventListener('click', async () => {
-        if (confirm('このシフトを本当に削除しますか？')) {
-            const success = await deleteShiftData(shift.id);
-            if (success) { closeModal(); buildShiftTable(); } else { alert('シフトの削除に失敗しました。'); }
-        }
-    });
-    modalBackground.classList.add('is-visible');
-    modalContent.classList.add('is-visible');
-}
-function openAddModal(staffId, staffName, date) {
-    shiftDetailView.style.display = 'none';
-    shiftAddForm.style.display = 'block';
-    modalTitle.textContent = '新規シフト登録';
-    shiftAddForm.dataset.shiftId = '';
-    document.getElementById('form-staff-name').textContent = staffName;
-    document.getElementById('form-date').textContent = date;
-    document.getElementById('form-staff-id').value = staffId;
-    document.getElementById('form-shift-type').value = '日1';
-    document.getElementById('form-notes').value = '';
-    document.getElementById('form-staff-name').parentElement.style.display = 'block';
-    document.getElementById('form-date').parentElement.style.display = 'block';
-    modalBackground.classList.add('is-visible');
-    modalContent.classList.add('is-visible');
-}
-function openEditModal(shift) {
-    shiftDetailView.style.display = 'none';
-    shiftAddForm.style.display = 'block';
-    modalTitle.textContent = 'シフト編集';
-    shiftAddForm.dataset.shiftId = shift.id;
-    document.getElementById('form-staff-name').textContent = shift.staff_name;
-    document.getElementById('form-date').textContent = shift.date;
-    document.getElementById('form-shift-type').value = shift.shift_type;
-    document.getElementById('form-notes').value = shift.notes || '';
-    document.getElementById('form-staff-name').parentElement.style.display = 'block';
-    document.getElementById('form-date').parentElement.style.display = 'block';
-}
-function closeModal() {
-    modalBackground.classList.remove('is-visible');
-    modalContent.classList.remove('is-visible');
-}
-async function fetchData(year, month) {
-    try {
-        const response = await fetch(`${GET_DATA_URL}?year=${year}&month=${month}`);
-        if (!response.ok) throw new Error('API request failed');
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch data:', error);
-        return { staff: [], shifts: [] };
-    }
-}
-async function addShiftData(shiftData) {
-    try {
-        const response = await fetch(ADD_SHIFT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(shiftData) });
-        if (!response.ok) throw new Error('API request failed');
-        return true;
-    } catch (error) {
-        console.error('Failed to add shift:', error);
-        return false;
-    }
-}
-async function updateShiftData(shiftId, shiftData) {
-    try {
-        const response = await fetch(`${UPDATE_SHIFT_URL_TEMPLATE}${shiftId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(shiftData) });
-        if (!response.ok) throw new Error('API request failed');
-        return true;
-    } catch (error) {
-        console.error('Failed to update shift:', error);
-        return false;
-    }
-}
-async function deleteShiftData(shiftId) {
-    try {
-        const response = await fetch(`${DELETE_SHIFT_URL_TEMPLATE}${shiftId}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('API request failed');
-        return true;
-    } catch (error) {
-        console.error('Failed to delete shift:', error);
-        return false;
-    }
-}
+/**
+ * シフト配列を検索しやすいようにマップ形式に変換する
+ * 例: { "スタッフ名": { "YYYY-MM-DD": shiftObject } }
+ */
 function transformShiftsToMap(shifts) {
     const map = {};
     shifts.forEach(shift => {
