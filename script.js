@@ -14,7 +14,7 @@ const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
 const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
 const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`;
 const GENERATE_SHIFTS_URL = `${API_URL_BASE}/api/shifts/generate`;
-const CLEAR_SHIFTS_URL = `${API_URL_BASE}/api/shifts/clear`; // ★★★ 追加 ★★★
+const CLEAR_SHIFTS_URL = `${API_URL_BASE}/api/shifts/clear`;
 
 // シフト定義
 const SHIFT_DEFINITIONS = {
@@ -50,7 +50,7 @@ let shiftModalBackground, shiftModalContent, shiftModalTitle, shiftModalBody, sh
 let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn, staffListContainer, addStaffForm;
 let editStaffModalBackground, editStaffModalContent, editStaffForm, editStaffModalCloseBtn;
 let openAvailabilityEditorBtn, backToStaffEditBtn, saveAvailabilityBtn;
-let generateShiftBtn, clearShiftsBtn; // ★★★ clearShiftsBtn を追加 ★★★
+let generateShiftBtn, clearShiftsBtn;
 
 
 // =================================================================================
@@ -99,11 +99,11 @@ function initializeDOMElements() {
     // 勤務可否エディタ用のボタン
     openAvailabilityEditorBtn = document.getElementById("open-availability-editor-btn");
     backToStaffEditBtn = document.getElementById("back-to-staff-edit-btn");
-    saveAvailabilityBtn = document.getElementById("save-availability-btn");
+    saveAvailabilityBtn = document.getElementById("save-availability-btn-in-edit");
     
     // 機能ボタン
     generateShiftBtn = document.getElementById('generate-shift-btn'); 
-    clearShiftsBtn = document.getElementById('clear-shifts-btn'); // ★★★ 追加 ★★★
+    clearShiftsBtn = document.getElementById('clear-shifts-btn');
 }
 
 function setupEventListeners() {
@@ -125,7 +125,7 @@ function setupEventListeners() {
     // ボタンクリック
     staffManageBtn.addEventListener('click', openStaffModal);
     generateShiftBtn.addEventListener('click', handleGenerateShifts);
-    clearShiftsBtn.addEventListener('click', handleClearShifts); // ★★★ 追加 ★★★
+    clearShiftsBtn.addEventListener('click', handleClearShifts);
 
     // イベント委任
     tableHeader.addEventListener('click', handleTableHeaderClick);
@@ -133,21 +133,6 @@ function setupEventListeners() {
     tableBody.addEventListener('change', handleTableBodyChange); 
     tableFooter.addEventListener('change', handleTableFooterChange);
     tableFooter.addEventListener('click', handleTableFooterClick);
-
-    // 編集モーダル内の画面切り替えイベント
-    openAvailabilityEditorBtn.addEventListener('click', () => {
-        const staffId = document.getElementById('edit-staff-id').value;
-        const staff = currentStaff.find(s => s.id == staffId);
-        if (staff) {
-            document.getElementById('edit-staff-form').style.display = 'none';
-            renderAvailabilityEditor(staff); 
-        }
-    });
-
-    backToStaffEditBtn.addEventListener('click', () => {
-        document.getElementById('availability-editor-container').style.display = 'none';
-        document.getElementById('edit-staff-form').style.display = 'block';
-    });
 }
 
 
@@ -372,6 +357,13 @@ function closeStaffModal() {
     staffModalContent.classList.remove('is-visible');
 }
 
+// ★★★ 編集モーダルを閉じる専用の関数を追加 ★★★
+function closeEditStaffModal() {
+    document.getElementById('edit-staff-modal-background').classList.remove('is-visible');
+    document.getElementById('edit-staff-modal-content').classList.remove('is-visible');
+    openStaffModal();
+}
+
 function renderStaffList() {
     let listHTML = '<ul>';
     currentStaff.forEach(staff => {
@@ -390,46 +382,37 @@ function renderStaffList() {
     staffListContainer.innerHTML = listHTML;
 }
 
-function renderAvailabilityEditor(staff) {
-    const editorContainer = document.getElementById('availability-editor-container');
-    const matrixTable = document.getElementById('availability-matrix');
-    document.getElementById('editor-staff-name').textContent = `${staff.name} の勤務可否設定`;
+// ★★★ 編集モーダル内の勤務可否エディタを描画する関数を追加 ★★★
+function renderAvailabilityEditorInEdit(staff) {
+    const matrixTable = document.getElementById('availability-matrix-in-edit');
+    document.getElementById('editor-staff-name-in-edit').textContent = `${staff.name} の勤務可否設定`;
 
     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
     const shiftTypes = ["早", "日1", "日2", "中", "遅", "夜", "明"];
-
+    
     let html = '<thead><tr><th></th>';
     weekdays.forEach(day => html += `<th>${day}</th>`);
-    html += '</tr></thead>';
+    html += '</tr></thead><tbody>';
 
-    html += '<tbody>';
+    const currentAvailabilities = staff.availabilities || [];
+
     shiftTypes.forEach(st => {
         html += `<tr><td>${st}</td>`;
         for (let dow = 0; dow < 7; dow++) {
-            const availability = staff.availabilities?.find(a => a.day_of_week === dow && a.shift_type === st);
+            const availability = currentAvailabilities.find(a => a.day_of_week === dow && a.shift_type === st);
             const isAvailable = availability ? availability.is_available : true;
-
-            html += `<td>
-                <div class="availability-toggle ${isAvailable ? 'is-available' : ''}"
-                     data-day-of-week="${dow}"
-                     data-shift-type="${st}">
-                </div>
-            </td>`;
+            html += `<td><div class="availability-toggle ${isAvailable ? 'is-available' : ''}" data-day-of-week="${dow}" data-shift-type="${st}"></div></td>`;
         }
         html += '</tr>';
     });
     html += '</tbody>';
     matrixTable.innerHTML = html;
 
-    editorContainer.style.display = 'block';
-
     matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
-        toggle.addEventListener('click', () => {
-            toggle.classList.toggle('is-available');
-        });
+        toggle.addEventListener('click', () => toggle.classList.toggle('is-available'));
     });
 
-    saveAvailabilityBtn.onclick = async () => {
+    document.getElementById('save-availability-btn-in-edit').onclick = async () => {
         const newAvailabilities = [];
         matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
             newAvailabilities.push({
@@ -439,13 +422,11 @@ function renderAvailabilityEditor(staff) {
             });
         });
         
-        const success = await updateStaffAvailabilitiesApi(staff.id, newAvailabilities);
-        if (success) {
+        if (await updateStaffAvailabilitiesApi(staff.id, newAvailabilities)) {
             alert('設定を保存しました。');
-            editorContainer.style.display = 'none';
+            document.getElementById('availability-editor-container-in-edit').style.display = 'none';
             document.getElementById('edit-staff-form').style.display = 'block';
             await buildShiftTable(); 
-            renderStaffList();
         } else {
             alert('設定の保存に失敗しました。');
         }
@@ -506,7 +487,6 @@ function handleTableFooterChange(event) {
 }
 
 function handleTableFooterClick(event) {
-    // Case 1: 行全体の日数調整ボタン
     if (event.target.classList.contains('adjust-btn-row')) {
         const type = event.target.dataset.type;
         const amount = parseInt(event.target.dataset.amount, 10);
@@ -534,7 +514,6 @@ function handleTableFooterClick(event) {
         return;
     }
 
-    // Case 2: ラベルクリックによるハイライト
     const labelSpan = event.target.closest('.summary-row-label span');
     if (labelSpan) {
         const label = labelSpan.closest('.summary-row-label');
@@ -598,12 +577,17 @@ async function handleAddStaff(event) {
     }
 }
 
+// ★★★ 編集モーダルを開く処理を刷新 ★★★
 function handleEditStaff(staffId) {
     const staff = currentStaff.find(s => s.id === staffId);
     if (!staff) return;
 
-    editStaffForm.style.display = 'block';
-    document.getElementById('availability-editor-container').style.display = 'none';
+    closeStaffModal();
+
+    const editModal = document.getElementById('edit-staff-modal-content');
+    const editModalBg = document.getElementById('edit-staff-modal-background');
+    const staffForm = document.getElementById('edit-staff-form');
+    const availabilityEditor = document.getElementById('availability-editor-container-in-edit');
 
     document.getElementById('edit-staff-id').value = staff.id;
     document.getElementById('edit-staff-name').value = staff.name;
@@ -611,19 +595,27 @@ function handleEditStaff(staffId) {
     document.getElementById('edit-staff-employment-type').value = staff.employment_type || '';
     document.getElementById('edit-staff-experience').value = staff.experience || '';
 
-    editStaffModalBackground.classList.add('is-visible');
-    editStaffModalContent.classList.add('is-visible');
+    staffForm.style.display = 'block';
+    availabilityEditor.style.display = 'none';
 
-    editStaffModalCloseBtn.onclick = () => {
-        editStaffModalBackground.classList.remove('is-visible');
-        editStaffModalContent.classList.remove('is-visible');
+    editModal.classList.add('is-visible');
+    editModalBg.classList.add('is-visible');
+
+    document.getElementById('edit-staff-modal-close-btn').onclick = () => closeEditStaffModal();
+    editModalBg.onclick = () => closeEditStaffModal();
+
+    document.getElementById('open-availability-editor-btn').onclick = () => {
+        staffForm.style.display = 'none';
+        availabilityEditor.style.display = 'block';
+        renderAvailabilityEditorInEdit(staff);
     };
-    editStaffModalBackground.onclick = () => {
-        editStaffModalBackground.classList.remove('is-visible');
-        editStaffModalContent.classList.remove('is-visible');
+    
+    document.getElementById('back-to-staff-edit-btn').onclick = () => {
+        availabilityEditor.style.display = 'none';
+        staffForm.style.display = 'block';
     };
 
-    editStaffForm.onsubmit = async (event) => {
+    staffForm.onsubmit = async (event) => {
         event.preventDefault();
         const updatedData = {
             name: document.getElementById('edit-staff-name').value,
@@ -631,13 +623,9 @@ function handleEditStaff(staffId) {
             employment_type: document.getElementById('edit-staff-employment-type').value,
             experience: document.getElementById('edit-staff-experience').value,
         };
-
-        const success = await updateStaffApi(staff.id, updatedData);
-        if (success) {
-            editStaffModalBackground.classList.remove('is-visible');
-            editStaffModalContent.classList.remove('is-visible');
+        if (await updateStaffApi(staff.id, updatedData)) {
+            closeEditStaffModal();
             await buildShiftTable();
-            renderStaffList(); 
         } else {
             alert('スタッフ情報の更新に失敗しました。');
         }
@@ -699,7 +687,6 @@ async function handleGenerateShifts() {
     }
 }
 
-// ★★★ 全シフトクリア機能を追加 ★★★
 async function handleClearShifts() {
     if (!confirm('表示されている月の全てのシフトを削除します。\nこの操作は元に戻せません。本当によろしいですか？')) {
         return;
