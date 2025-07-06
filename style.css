@@ -49,7 +49,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 /* ==========================================================================
    集計列 (Summary Columns)
    ========================================================================== */
-.summary-main-header, .summary-main-col { background-color: #f8f9fa; font-weight: bold; min-width: 80px; position: sticky; right: 0; z-index: 1; border-left: 1px solid #ccc; }
+.summary-main-header, .summary-main-col { background-color: #f8f9fa; font-weight: bold; min-width: 100px; position: sticky; right: 0; z-index: 1; border-left: 1px solid #ccc; } /* ★★★ 幅を80pxから100pxに変更 ★★★ */
 .summary-main-header { z-index: 3 !important; }
 .summary-header-container { display: flex; align-items: center; justify-content: center; gap: 0.5em; }
 .summary-header-container .adjust-btn { padding: 0; width: 18px; height: 18px; font-size: 14px; line-height: 1; border: 1px solid #aaa; border-radius: 50%; cursor: pointer; }
