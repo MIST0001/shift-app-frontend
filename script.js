@@ -124,7 +124,7 @@ function setupEventListeners() {
     
     // ボタンクリック
     staffManageBtn.addEventListener('click', openStaffModal);
-    generateShiftBtn.addEventListener('click', handleGenerateShifts);
+    generateShiftBtn.addEventListener('click', handleGenerateShift);
     clearShiftsBtn.addEventListener('click', handleClearShifts);
 
     // イベント委任
@@ -357,7 +357,6 @@ function closeStaffModal() {
     staffModalContent.classList.remove('is-visible');
 }
 
-// ★★★ 編集モーダルを閉じる専用の関数を追加 ★★★
 function closeEditStaffModal() {
     document.getElementById('edit-staff-modal-background').classList.remove('is-visible');
     document.getElementById('edit-staff-modal-content').classList.remove('is-visible');
@@ -382,7 +381,6 @@ function renderStaffList() {
     staffListContainer.innerHTML = listHTML;
 }
 
-// ★★★ 編集モーダル内の勤務可否エディタを描画する関数を追加 ★★★
 function renderAvailabilityEditorInEdit(staff) {
     const matrixTable = document.getElementById('availability-matrix-in-edit');
     document.getElementById('editor-staff-name-in-edit').textContent = `${staff.name} の勤務可否設定`;
@@ -577,7 +575,6 @@ async function handleAddStaff(event) {
     }
 }
 
-// ★★★ 編集モーダルを開く処理を刷新 ★★★
 function handleEditStaff(staffId) {
     const staff = currentStaff.find(s => s.id === staffId);
     if (!staff) return;
@@ -648,42 +645,42 @@ async function handleDeleteStaff(staffId) {
 // --- シフト自動作成 & クリア (Shift Generation & Clear) ---
 // =================================================================================
 
-async function handleGenerateShifts() {
-    if (!confirm('現在のシフト内容を元に、空いているマスに自動でシフトを割り当てます。よろしいですか？')) {
+async function handleGenerateShift() {
+    if (!confirm('現在のシフトをクリアして、自動で新しいシフトを作成しますか？')) {
         return;
     }
 
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-
-    console.log(`シフト自動作成を開始します: ${year}年${month}月`);
-    alert('シフト自動作成を開始します！サーバー側で処理を行うため、少し時間がかかる場合があります。完了したら通知します。');
+    alert('シフトの自動作成を開始します。完了まで時間がかかる場合があります...');
 
     try {
-        const response = await fetch(GENERATE_SHIFTS_URL, {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+
+        const requestBody = {
+            year: year,
+            month: month,
+            targetHolidays: globalTargetHolidays['休'],
+            required_staffing: requiredStaffing
+        };
+        
+        const response = await fetch(`${API_URL_BASE}/api/shifts/generate`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                year: year,
-                month: month,
-                required_staffing: requiredStaffing 
-            }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
         });
 
         const result = await response.json();
 
         if (response.ok) {
-            alert('シフト自動作成が完了しました！');
-            console.log('生成されたシフト:', result.generated_shifts);
-            buildShiftTable();
+            alert(result.message || 'シフトが生成されました！');
         } else {
-            alert(`エラーが発生しました: ${result.error}`);
+            throw new Error(result.error || 'シフトの生成に失敗しました。');
         }
     } catch (error) {
-        console.error('シフト自動作成中にエラー:', error);
-        alert('シフトの自動作成中にエラーが発生しました。');
+        console.error('シフト自動作成エラー:', error);
+        alert(`エラーが発生しました: ${error.message}`);
+    } finally {
+        buildShiftTable();
     }
 }
 
