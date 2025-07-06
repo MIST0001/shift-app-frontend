@@ -239,7 +239,6 @@ function buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth) {
     tableBody.innerHTML = bodyHTML;
 }
 
-// ★★★ フッターのラベルに行全体調整ボタンを追加 ★★★
 function buildTableFooter(year, month, shifts, daysInMonth) {
     let footerHTML = '';
 
@@ -272,19 +271,33 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
         footerHTML += `</tr>`;
     });
 
-    footerHTML += `<tr>
-        <th class="summary-row-label">
-            <div class="summary-header-container">
-                <button class="adjust-btn-row" data-type="合計" data-amount="-1">−</button>
-                <span>合計</span>
-                <button class="adjust-btn-row" data-type="合計" data-amount="1">+</button>
-            </div>
-        </th>`;
+    // ★★★ 「合計」行の生成ロジックを書き換え ★★★
+    footerHTML += `<tr><th class="summary-row-label">
+        <div class="summary-header-container">
+            <button class="adjust-btn-row" data-type="合計" data-amount="-1">−</button>
+            <span>合計</span>
+            <button class="adjust-btn-row" data-type="合計" data-amount="1">+</button>
+        </div>
+    </th>`;
+
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const totalCount = shifts.filter(s => s.date === dateStr && SHIFT_DEFINITIONS[s.shift_type]?.type.includes('work')).length;
+        
+        const requiredTotal = DAILY_COUNT_TARGETS.reduce((total, shiftType) => {
+            return total + (requiredStaffing[dateStr]?.[shiftType] || 0);
+        }, 0);
+        
+        const actualTotal = shifts.filter(s => s.date === dateStr && DAILY_COUNT_TARGETS.includes(s.shift_type)).length;
+        
         const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
-        footerHTML += `<td class="${dayClass}">${totalCount}</td>`;
+        const statusClass = actualTotal < requiredTotal ? 'staff-shortage' : actualTotal > requiredTotal ? 'staff-surplus' : '';
+
+        footerHTML += `<td class="${dayClass}">
+            <div class="staffing-cell ${statusClass}">
+                <input type="number" class="summary-row-input" value="${requiredTotal}" min="0" data-date="${dateStr}" data-shift-type="合計" readonly>
+                <span class="actual-count">(${actualTotal})</span>
+            </div>
+        </td>`;
     }
     footerHTML += `<td class="summary-main-col"></td>`;
     SUMMARY_ORDER.forEach(() => footerHTML += `<td class="summary-detail-col ${isAccordionOpen ? 'visible' : ''}"></td>`);
@@ -490,7 +503,6 @@ function handleTableFooterChange(event) {
     }
 }
 
-// ★★★ フッターのクリックイベントハンドラを更新 ★★★
 function handleTableFooterClick(event) {
     // Case 1: 行全体の日数調整ボタン
     if (event.target.classList.contains('adjust-btn-row')) {
@@ -508,7 +520,6 @@ function handleTableFooterClick(event) {
             }
 
             if (type === '合計') {
-                // 仮のロジック：最初の勤務タイプを増減させる
                 const targetShift = DAILY_COUNT_TARGETS[0]; 
                 requiredStaffing[dateStr][targetShift] = (requiredStaffing[dateStr][targetShift] || 0) + amount;
                 if (requiredStaffing[dateStr][targetShift] < 0) requiredStaffing[dateStr][targetShift] = 0;
