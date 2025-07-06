@@ -2,7 +2,8 @@
 const API_URL_BASE = "https://shift-app-api-xgls.onrender.com"; // ★あなたのベースURL
 const GET_DATA_URL = `${API_URL_BASE}/api/shift-data`;
 const ADD_SHIFT_URL = `${API_URL_BASE}/api/shifts/add`;
-const UPDATE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/update/`; // IDを後から付ける
+const UPDATE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/update/`;
+const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
 const YEAR = 2025;
 const MONTH = 7;
 
@@ -10,7 +11,7 @@ const MONTH = 7;
 let tableHeader, tableBody, modalBackground, modalContent, modalTitle, modalBody, modalCloseBtn, shiftDetailView, shiftAddForm;
 
 // --- グローバル変数 ---
-let currentShifts = []; // 現在のシフトデータを保持する
+let currentShifts = [];
 
 // --- 初期化 & メイン処理 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,12 +45,11 @@ async function buildShiftTable() {
         return;
     }
     
-    currentShifts = shifts; // 取得したシフトデータをグローバル変数に保存
+    currentShifts = shifts;
 
     const shiftMap = transformShiftsToMap(shifts);
     const daysInMonth = new Date(YEAR, MONTH, 0).getDate();
 
-    // 1. ヘッダーを生成
     let headerHTML = `<tr><th class="header-staff-col">氏名</th>`;
     let dayOfWeekHTML = `<tr><th class="header-staff-col"></th>`;
     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
@@ -62,7 +62,6 @@ async function buildShiftTable() {
     }
     tableHeader.innerHTML = headerHTML + `</tr>` + dayOfWeekHTML + `</tr>`;
 
-    // 2. ボディ（スタッフの行）を生成
     let bodyHTML = "";
     staff.forEach(staffMember => {
         bodyHTML += `<tr><td class="staff-name-col">${staffMember.name}</td>`;
@@ -81,11 +80,9 @@ async function buildShiftTable() {
     });
     tableBody.innerHTML = bodyHTML;
 
-    // 3. クリックイベントを設定
     setupCellClickEvents();
 }
 
-// --- イベント設定関連の関数 ---
 function setupCellClickEvents() {
     document.querySelectorAll('.has-shift').forEach(cell => {
         cell.addEventListener('click', (event) => {
@@ -106,19 +103,16 @@ function setupCellClickEvents() {
 async function handleFormSubmit(event) {
     event.preventDefault();
     const form = event.target;
-    const shiftId = form.dataset.shiftId; // 編集中のシフトIDを取得
+    const shiftId = form.dataset.shiftId;
 
-    // 更新と新規で送信するデータ内容を分ける
     let success = false;
     if (shiftId) {
-        // 更新の場合：shift_type と notes のみ
         const shiftData = {
             shift_type: document.getElementById('form-shift-type').value,
             notes: document.getElementById('form-notes').value,
         };
         success = await updateShiftData(shiftId, shiftData);
     } else {
-        // 新規登録の場合：全ての情報
         const shiftData = {
             staff_id: document.getElementById('form-staff-id').value,
             date: document.getElementById('form-date').textContent,
@@ -136,23 +130,34 @@ async function handleFormSubmit(event) {
     }
 }
 
-// --- モーダル（ポップアップ）関連の関数 ---
 function openDetailModal(shift) {
     shiftAddForm.style.display = 'none';
     shiftDetailView.style.display = 'block';
     modalTitle.textContent = `${shift.date} のシフト詳細`;
 
-    // 詳細表示と編集ボタンを生成
     shiftDetailView.innerHTML = `
         <p><strong>スタッフ:</strong> ${shift.staff_name}</p>
         <p><strong>勤務種類:</strong> ${shift.shift_type}</p>
         <p><strong>備考:</strong> ${shift.notes || '特になし'}</p>
-        <button id="edit-shift-btn" data-shift-id="${shift.id}">編集</button>
+        <div class="modal-buttons">
+            <button id="edit-shift-btn">編集</button>
+            <button id="delete-shift-btn" class="delete-btn">削除</button>
+        </div>
     `;
     
-    // 動的に生成したボタンにイベントリスナーを設定
     document.getElementById('edit-shift-btn').addEventListener('click', () => {
         openEditModal(shift);
+    });
+    document.getElementById('delete-shift-btn').addEventListener('click', async () => {
+        if (confirm('このシフトを本当に削除しますか？')) {
+            const success = await deleteShiftData(shift.id);
+            if (success) {
+                closeModal();
+                buildShiftTable();
+            } else {
+                alert('シフトの削除に失敗しました。');
+            }
+        }
     });
 
     modalBackground.classList.add('is-visible');
@@ -164,15 +169,14 @@ function openAddModal(staffId, staffName, date) {
     shiftAddForm.style.display = 'block';
     modalTitle.textContent = '新規シフト登録';
     
-    shiftAddForm.dataset.shiftId = ''; // 新規登録なのでIDは空に
+    shiftAddForm.dataset.shiftId = '';
     
     document.getElementById('form-staff-name').textContent = staffName;
     document.getElementById('form-date').textContent = date;
     document.getElementById('form-staff-id').value = staffId;
-    document.getElementById('form-shift-type').value = '日1'; // デフォルト値
+    document.getElementById('form-shift-type').value = '日1';
     document.getElementById('form-notes').value = '';
 
-    // ★★★ フォームのスタッフ名と日付の表示を制御 ★★★
     document.getElementById('form-staff-name').parentElement.style.display = 'block';
     document.getElementById('form-date').parentElement.style.display = 'block';
 
@@ -185,15 +189,13 @@ function openEditModal(shift) {
     shiftAddForm.style.display = 'block';
     modalTitle.textContent = 'シフト編集';
 
-    shiftAddForm.dataset.shiftId = shift.id; // フォームに編集対象のIDをセット
+    shiftAddForm.dataset.shiftId = shift.id;
 
-    // 編集時はスタッフ名と日付は表示だけで十分なので、フォーム内の要素はそのままに
     document.getElementById('form-staff-name').textContent = shift.staff_name;
     document.getElementById('form-date').textContent = shift.date;
     document.getElementById('form-shift-type').value = shift.shift_type;
     document.getElementById('form-notes').value = shift.notes || '';
 
-    // ★★★ フォームのスタッフ名と日付の表示を制御 ★★★
     document.getElementById('form-staff-name').parentElement.style.display = 'block';
     document.getElementById('form-date').parentElement.style.display = 'block';
 }
@@ -203,7 +205,6 @@ function closeModal() {
     modalContent.classList.remove('is-visible');
 }
 
-// --- API通信関連の関数 ---
 async function fetchData() {
     try {
         const response = await fetch(GET_DATA_URL);
@@ -245,7 +246,19 @@ async function updateShiftData(shiftId, shiftData) {
     }
 }
 
-// --- データ変換ヘルパー ---
+async function deleteShiftData(shiftId) {
+    try {
+        const response = await fetch(`${DELETE_SHIFT_URL_TEMPLATE}${shiftId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('API request failed');
+        return true;
+    } catch (error) {
+        console.error('Failed to delete shift:', error);
+        return false;
+    }
+}
+
 function transformShiftsToMap(shifts) {
     const map = {};
     shifts.forEach(shift => {
