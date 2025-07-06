@@ -1,5 +1,5 @@
 // Renderで公開したバックエンドAPIのURLに書き換える！
-const API_URL = "https://shift-app-api.onrender.com"; 
+const API_URL = "https://shift-app-api-xgls.onrender.com/"; 
 
 async function fetchMessage() {
     try {
