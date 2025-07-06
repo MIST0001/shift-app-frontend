@@ -34,6 +34,8 @@ let isAccordionOpen = false;
 let currentShifts = [];
 let currentStaff = [];
 let requiredStaffing = {}; // 日ごとの必要人数 { "YYYY-MM-DD": { "早": 2 } }
+let globalTargetHolidays = { '休': 8, '有': 0 }; // 全員共通の目標休日数
+let staffTargetHolidays = {}; // スタッフ個別の目標休日数（上書き用）
 
 
 // =================================================================================
@@ -105,6 +107,7 @@ function setupEventListeners() {
     // イベント委任
     tableHeader.addEventListener('click', handleTableHeaderClick);
     tableBody.addEventListener('click', handleTableBodyClick);
+    tableBody.addEventListener('change', handleTableBodyChange); // 個人目標入力の変更
     tableFooter.addEventListener('change', handleTableFooterChange);
 }
 
@@ -147,8 +150,20 @@ function buildTableHeader(year, month, daysInMonth) {
         headerHTML += `<th class="${dayClass}">${day}<br>${weekdays[date.getDay()]}</th>`;
     }
     headerHTML += `<th class="summary-main-header"><div class="summary-header-container"><span>総時間</span><button id="accordion-toggle" class="accordion-toggle">${isAccordionOpen ? '−' : '+'}</button></div></th>`;
+    
     SUMMARY_ORDER.forEach(key => {
-        headerHTML += `<th class="summary-detail-header ${isAccordionOpen ? 'visible' : ''}">${key}</th>`;
+        let headerContent = key;
+        if (key === '休') {
+            headerContent = `
+                <div class="summary-header-container">
+                    <button class="adjust-btn" data-type="休" data-amount="-1">−</button>
+                    <span>休</span>
+                    <button class="adjust-btn" data-type="休" data-amount="1">+</button>
+                </div>
+            `;
+        }
+        const visibilityClass = isAccordionOpen ? 'visible' : '';
+        headerHTML += `<th class="summary-detail-header ${visibilityClass}">${headerContent}</th>`;
     });
     tableHeader.innerHTML = headerHTML + `</tr>`;
 }
@@ -169,10 +184,19 @@ function buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth) {
         }
         const totalHours = summary['日勤時間数'] + summary['夜勤時間数'];
         bodyHTML += `<td class="summary-main-col">${totalHours}h</td>`;
+        
+        const targetHolidays = staffTargetHolidays[staffMember.id] || globalTargetHolidays['休'];
+        
         SUMMARY_ORDER.forEach(key => {
+            const visibilityClass = isAccordionOpen ? 'visible' : '';
             const value = summary[key] || 0;
-            const unit = key.includes('時間数') ? 'h' : '';
-            bodyHTML += `<td class="summary-detail-col ${isAccordionOpen ? 'visible' : ''}">${value}${unit}</td>`;
+            let cellContent = `${value}${key.includes('時間数') ? 'h' : ''}`;
+
+            if (key === '休') {
+                cellContent = `<input type="number" class="target-input" value="${targetHolidays}" data-staff-id="${staffMember.id}" data-type="休"> / ${value}`;
+            }
+            
+            bodyHTML += `<td class="summary-detail-col ${visibilityClass}">${cellContent}</td>`;
         });
         bodyHTML += `</tr>`;
     });
@@ -192,7 +216,6 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
             const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
             const statusClass = actualCount < requiredCount ? 'staff-shortage' : actualCount > requiredCount ? 'staff-surplus' : '';
 
-            // ★★★ HTML構造を変更 ★★★
             footerHTML += `<td class="${dayClass}">
                 <div class="staffing-cell ${statusClass}">
                     <input type="number" class="summary-row-input" value="${requiredCount}" min="0" data-date="${dateStr}" data-shift-type="${shiftType}">
@@ -310,6 +333,13 @@ function handleTableHeaderClick(event) {
         isAccordionOpen = !isAccordionOpen;
         buildShiftTable();
     }
+    if (event.target.classList.contains('adjust-btn')) {
+        const type = event.target.dataset.type;
+        const amount = parseInt(event.target.dataset.amount, 10);
+        globalTargetHolidays[type] += amount;
+        staffTargetHolidays = {}; // 個別設定をリセット
+        buildShiftTable();
+    }
 }
 
 function handleTableBodyClick(event) {
@@ -323,6 +353,16 @@ function handleTableBodyClick(event) {
     } else if (cell.classList.contains('empty-cell')) {
         const { date, staffId, staffName } = cell.dataset;
         openShiftAddModal(staffId, staffName, date);
+    }
+}
+
+function handleTableBodyChange(event) {
+    if (event.target.classList.contains('target-input')) {
+        const staffId = event.target.dataset.staffId;
+        const value = parseInt(event.target.value, 10);
+        if (!isNaN(value)) {
+            staffTargetHolidays[staffId] = value;
+        }
     }
 }
 
