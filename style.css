@@ -111,10 +111,14 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 /* ==========================================================================
    出勤可否マトリクス (Availability Matrix)
    ========================================================================== */
-#availability-matrix { width: 100%; border-collapse: collapse; margin-top: 1em; }
-#availability-matrix th, #availability-matrix td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
-#availability-matrix .availability-toggle { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid #ccc; background-color: #eee; }
-#availability-matrix .availability-toggle.is-available { background-color: #2ecc71; border-color: #27ae60; }
+/* カンマで区切って、両方のテーブルにスタイルが当たるようにするよ！ */
+#availability-matrix, #availability-matrix-in-edit { width: 100%; border-collapse: collapse; margin-top: 1em; }
+#availability-matrix th, #availability-matrix td,
+#availability-matrix-in-edit th, #availability-matrix-in-edit td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
+#availability-matrix .availability-toggle,
+#availability-matrix-in-edit .availability-toggle { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid #ccc; background-color: #eee; }
+#availability-matrix .availability-toggle.is-available,
+#availability-matrix-in-edit .availability-toggle.is-available { background-color: #2ecc71; border-color: #27ae60; }
 
 /* ==========================================================================
    特別機能ボタン (Special Feature Button)
