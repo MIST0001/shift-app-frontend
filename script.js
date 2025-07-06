@@ -271,7 +271,6 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
         footerHTML += `</tr>`;
     });
 
-    // ★★★ 「合計」行の生成ロジックを書き換え ★★★
     footerHTML += `<tr><th class="summary-row-label">
         <div class="summary-header-container">
             <button class="adjust-btn-row" data-type="合計" data-amount="-1">−</button>
@@ -717,7 +716,13 @@ async function updateShiftApi(shiftId, shiftData) { return await postData(`${UPD
 async function deleteShiftApi(shiftId) { return await postData(`${DELETE_SHIFT_URL_TEMPLATE}${shiftId}`, null, 'Failed to delete shift', 'DELETE'); }
 async function addStaffApi(staffData) { return await postData(ADD_STAFF_URL, staffData, 'Failed to add staff'); }
 async function updateStaffApi(staffId, staffData) { return await postData(`${UPDATE_STAFF_URL_TEMPLATE}${staffId}`, staffData, 'Failed to update staff', 'PUT'); }
-async function deleteStaffApi(staffId) { return await postData(`${DELETE_STAFF_URL_TEMPLATE}${staffId}`, null, 'Failed to delete staff', 'DELETE'); }
+
+// ★★★ スタッフ削除APIの呼び出しを修正 ★★★
+async function deleteStaffApi(staffId) { 
+    const url = `${DELETE_STAFF_URL_TEMPLATE}${staffId}?force=true`;
+    return await postData(url, null, 'Failed to delete staff', 'DELETE'); 
+}
+
 async function updateStaffAvailabilitiesApi(staffId, availabilities) {
     const url = `${UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE}${staffId}`;
     return await postData(url, availabilities, 'Failed to update availabilities', 'POST');
