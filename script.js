@@ -27,7 +27,8 @@ async function buildShiftTable() {
             const dateStr = `${YEAR}-${String(MONTH).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const shiftData = shiftMap[staffMember.name]?.[dateStr];
             
-            const dayClass = /* ...変更なし... */;
+            const date = new Date(YEAR, MONTH - 1, day);
+            const dayClass = date.getDay() === 0 ? "day-sunday" : date.getDay() === 6 ? "day-saturday" : "";
             
             if (shiftData) {
                 // シフトがあるセル
