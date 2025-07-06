@@ -14,6 +14,7 @@ const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
 const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
 const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`;
 const GENERATE_SHIFTS_URL = `${API_URL_BASE}/api/shifts/generate`;
+const CLEAR_SHIFTS_URL = `${API_URL_BASE}/api/shifts/clear`; // ★★★ 追加 ★★★
 
 // シフト定義
 const SHIFT_DEFINITIONS = {
@@ -49,7 +50,7 @@ let shiftModalBackground, shiftModalContent, shiftModalTitle, shiftModalBody, sh
 let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn, staffListContainer, addStaffForm;
 let editStaffModalBackground, editStaffModalContent, editStaffForm, editStaffModalCloseBtn;
 let openAvailabilityEditorBtn, backToStaffEditBtn, saveAvailabilityBtn;
-let generateShiftBtn;
+let generateShiftBtn, clearShiftsBtn; // ★★★ clearShiftsBtn を追加 ★★★
 
 
 // =================================================================================
@@ -100,8 +101,9 @@ function initializeDOMElements() {
     backToStaffEditBtn = document.getElementById("back-to-staff-edit-btn");
     saveAvailabilityBtn = document.getElementById("save-availability-btn");
     
-    // 自動生成ボタン
+    // 機能ボタン
     generateShiftBtn = document.getElementById('generate-shift-btn'); 
+    clearShiftsBtn = document.getElementById('clear-shifts-btn'); // ★★★ 追加 ★★★
 }
 
 function setupEventListeners() {
@@ -123,6 +125,7 @@ function setupEventListeners() {
     // ボタンクリック
     staffManageBtn.addEventListener('click', openStaffModal);
     generateShiftBtn.addEventListener('click', handleGenerateShifts);
+    clearShiftsBtn.addEventListener('click', handleClearShifts); // ★★★ 追加 ★★★
 
     // イベント委任
     tableHeader.addEventListener('click', handleTableHeaderClick);
@@ -654,7 +657,7 @@ async function handleDeleteStaff(staffId) {
 }
 
 // =================================================================================
-// --- シフト自動作成 (Shift Generation) ---
+// --- シフト自動作成 & クリア (Shift Generation & Clear) ---
 // =================================================================================
 
 async function handleGenerateShifts() {
@@ -696,6 +699,36 @@ async function handleGenerateShifts() {
     }
 }
 
+// ★★★ 全シフトクリア機能を追加 ★★★
+async function handleClearShifts() {
+    if (!confirm('表示されている月の全てのシフトを削除します。\nこの操作は元に戻せません。本当によろしいですか？')) {
+        return;
+    }
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+
+    try {
+        const response = await fetch(CLEAR_SHIFTS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, month }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            buildShiftTable();
+        } else {
+            alert(`エラー: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('全シフトクリア中にエラー:', error);
+        alert('シフトのクリア中にエラーが発生しました。');
+    }
+}
+
 // =================================================================================
 // --- API通信 (API Communications) ---
 // =================================================================================
@@ -717,7 +750,6 @@ async function deleteShiftApi(shiftId) { return await postData(`${DELETE_SHIFT_U
 async function addStaffApi(staffData) { return await postData(ADD_STAFF_URL, staffData, 'Failed to add staff'); }
 async function updateStaffApi(staffId, staffData) { return await postData(`${UPDATE_STAFF_URL_TEMPLATE}${staffId}`, staffData, 'Failed to update staff', 'PUT'); }
 
-// ★★★ スタッフ削除APIの呼び出しを修正 ★★★
 async function deleteStaffApi(staffId) { 
     const url = `${DELETE_STAFF_URL_TEMPLATE}${staffId}?force=true`;
     return await postData(url, null, 'Failed to delete staff', 'DELETE'); 
