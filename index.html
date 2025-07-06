@@ -3,17 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シフトデータ表示テスト</title>
+    <title>シフトカレンダー</title>
+    <!-- 作成したCSSファイルを読み込む -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>シフトデータ一覧</h1>
     
-    <!-- ここにJavaScriptがシフトデータを書き込みます -->
-    <ul id="shift-list">
-        <li>データを読み込み中...</li>
-    </ul>
+    <h1>令和7年 7月 シフト表</h1>
 
-    <!-- 忘れずに script.js を読み込みます -->
+    <div class="calendar-container">
+        <table class="calendar-table">
+            <!-- thead: テーブルのヘッダー（曜日） -->
+            <thead>
+                <tr>
+                    <th>日</th>
+                    <th>月</th>
+                    <th>火</th>
+                    <th>水</th>
+                    <th>木</th>
+                    <th>金</th>
+                    <th>土</th>
+                </tr>
+            </thead>
+            <!-- tbody: テーブルの本体（日付）。JavaScriptがここにカレンダーを生成します。 -->
+            <tbody id="calendar-body">
+                <!-- ここはJavaScriptによって動的に生成されます -->
+            </tbody>
+        </table>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
