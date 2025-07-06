@@ -12,7 +12,7 @@ const DELETE_SHIFT_URL_TEMPLATE = `${API_URL_BASE}/api/shifts/delete/`;
 const ADD_STAFF_URL = `${API_URL_BASE}/api/staff/add`;
 const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
 const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
-const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`; // ★ 追加
+const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`;
 
 // シフト定義
 const SHIFT_DEFINITIONS = {
@@ -46,6 +46,8 @@ let staffTargetHolidays = {}; // スタッフ個別の目標休日数（上書�
 let calendarTitle, prevMonthBtn, nextMonthBtn, todayBtn, tableHeader, tableBody, tableFooter;
 let shiftModalBackground, shiftModalContent, shiftModalTitle, shiftModalBody, shiftModalCloseBtn, shiftDetailView, shiftAddForm;
 let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn, staffListContainer, addStaffForm;
+// ★★★ スタッフ編集モーダル用の変数を追加 ★★★
+let editStaffModalBackground, editStaffModalContent, editStaffForm, editStaffModalCloseBtn;
 
 
 // =================================================================================
@@ -84,6 +86,12 @@ function initializeDOMElements() {
     staffModalCloseBtn = document.getElementById("staff-modal-close-btn");
     staffListContainer = document.getElementById("staff-list-container");
     addStaffForm = document.getElementById("add-staff-form");
+
+    // ★★★ スタッフ編集モーダルの要素を取得 ★★★
+    editStaffModalBackground = document.getElementById('edit-staff-modal-background');
+    editStaffModalContent = document.getElementById('edit-staff-modal-content');
+    editStaffForm = document.getElementById('edit-staff-form');
+    editStaffModalCloseBtn = document.getElementById('edit-staff-modal-close-btn');
 }
 
 function setupEventListeners() {
@@ -313,7 +321,7 @@ function renderStaffList() {
         listHTML += `<li>
             <span>
                 <strong>${staff.name}</strong><br>
-                <small>${staff.employment_type || '未設定'} / ${staff.gender || '未設定'}</small>
+                <small>${staff.employment_type || '未設定'} / ${staff.gender || '未設定'} / ${staff.experience || '未設定'}</small>
             </span>
             <div>
                 <button onclick="handleEditStaff(${staff.id})">編集</button>
@@ -325,7 +333,6 @@ function renderStaffList() {
     staffListContainer.innerHTML = listHTML;
 }
 
-// ★★★ 勤務可否エディタを描画する関数 (新規追加) ★★★
 function renderAvailabilityEditor(staff) {
     const editorContainer = document.getElementById('availability-editor-container');
     const matrixTable = document.getElementById('availability-matrix');
@@ -472,7 +479,8 @@ async function handleAddStaff(event) {
     const staffData = {
         name: newName,
         gender: document.getElementById('new-staff-gender').value,
-        employment_type: document.getElementById('new-staff-employment-type').value
+        employment_type: document.getElementById('new-staff-employment-type').value,
+        experience: document.getElementById('new-staff-experience').value
     };
     
     if (await addStaffApi(staffData)) {
@@ -484,15 +492,57 @@ async function handleAddStaff(event) {
     }
 }
 
-// ★★★ 編集ボタンの処理を勤務可否エディタの表示に変更 ★★★
+// ★★★ handleEditStaff 関数をモーダルを使うように完全に書き換え ★★★
 function handleEditStaff(staffId) {
     const staff = currentStaff.find(s => s.id === staffId);
-    if (staff) {
-        // スタッフ管理モーダルを閉じ、可否エディタを開く
-        closeStaffModal();
-        renderAvailabilityEditor(staff);
-    }
+    if (!staff) return;
+
+    // フォームに現在の値をセット
+    document.getElementById('edit-staff-id').value = staff.id;
+    document.getElementById('edit-staff-name').value = staff.name;
+    document.getElementById('edit-staff-gender').value = staff.gender || '';
+    document.getElementById('edit-staff-employment-type').value = staff.employment_type || '';
+    document.getElementById('edit-staff-experience').value = staff.experience || '';
+
+    // モーダルを表示
+    editStaffModalBackground.classList.add('is-visible');
+    editStaffModalContent.classList.add('is-visible');
+
+    // 閉じるボタンのイベントリスナーを設定
+    editStaffModalCloseBtn.onclick = () => {
+        editStaffModalBackground.classList.remove('is-visible');
+        editStaffModalContent.classList.remove('is-visible');
+    };
+    editStaffModalBackground.onclick = () => {
+        editStaffModalBackground.classList.remove('is-visible');
+        editStaffModalContent.classList.remove('is-visible');
+    };
+
+    // フォーム送信時のイベントリスナーを設定
+    editStaffForm.onsubmit = async (event) => {
+        event.preventDefault();
+        const updatedData = {
+            name: document.getElementById('edit-staff-name').value,
+            gender: document.getElementById('edit-staff-gender').value,
+            employment_type: document.getElementById('edit-staff-employment-type').value,
+            experience: document.getElementById('edit-staff-experience').value,
+        };
+
+        const success = await updateStaffApi(staff.id, updatedData);
+        if (success) {
+            // モーダルを閉じる
+            editStaffModalBackground.classList.remove('is-visible');
+            editStaffModalContent.classList.remove('is-visible');
+            // テーブルを再描画
+            await buildShiftTable();
+            // スタッフ管理リストも再描画
+            renderStaffList(); 
+        } else {
+            alert('スタッフ情報の更新に失敗しました。');
+        }
+    };
 }
+
 
 async function handleDeleteStaff(staffId) {
     if (confirm('このスタッフを本当に削除しますか？\n関連するシフトも全て削除されます。')) {
@@ -526,7 +576,6 @@ async function deleteShiftApi(shiftId) { return await postData(`${DELETE_SHIFT_U
 async function addStaffApi(staffData) { return await postData(ADD_STAFF_URL, staffData, 'Failed to add staff'); }
 async function updateStaffApi(staffId, staffData) { return await postData(`${UPDATE_STAFF_URL_TEMPLATE}${staffId}`, staffData, 'Failed to update staff', 'PUT'); }
 async function deleteStaffApi(staffId) { return await postData(`${DELETE_STAFF_URL_TEMPLATE}${staffId}`, null, 'Failed to delete staff', 'DELETE'); }
-// ★★★ 勤務可否を更新するAPI関数 (新規追加) ★★★
 async function updateStaffAvailabilitiesApi(staffId, availabilities) {
     const url = `${UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE}${staffId}`;
     return await postData(url, availabilities, 'Failed to update availabilities', 'POST');
