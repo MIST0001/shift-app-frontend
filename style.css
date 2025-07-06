@@ -78,7 +78,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 .accordion-toggle:hover { background-color: #e9e9e9; }
 .accordion-toggle.open { transform: rotate(45deg); }
 .summary-detail-header, .summary-detail-col { max-width: 0; overflow: hidden; padding: 0; border: none; transition: all 0.35s ease-in-out; }
-.summary-detail-header.visible, .summary-detail-col.visible { max-width: 100px; padding: 0.75em; border-left: 1px solid #ddd; }
+.summary-detail-header.visible, .summary-detail-col.visible { max-width: 100px; min-width: 60px; padding: 0.75em; border-left: 1px solid #ddd; }
 
 /* ==========================================================================
    モーダル (Modal / Popup)
@@ -97,6 +97,10 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 /* ==========================================================================
    スタッフ管理モーダル (Staff Management Modal)
    ========================================================================== */
+#staff-list-container {
+    max-height: 40vh; /* 画面の高さの40%まで */
+    overflow-y: auto; /* はみ出たらスクロール */
+}
 #staff-list-container ul { list-style: none; padding: 0; margin: 0; }
 #staff-list-container li { display: flex; justify-content: space-between; align-items: center; padding: 10px 5px; border-bottom: 1px solid #eee; }
 #staff-list-container li:last-child { border-bottom: none; }
