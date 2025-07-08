@@ -13,8 +13,6 @@ const ADD_STAFF_URL = `${API_URL_BASE}/api/staff/add`;
 const UPDATE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/update/`;
 const DELETE_STAFF_URL_TEMPLATE = `${API_URL_BASE}/api/staff/delete/`;
 const UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE = `${API_URL_BASE}/api/staff/availabilities/update/`;
-const GENERATE_SHIFTS_URL = `${API_URL_BASE}/api/shifts/generate`;
-const CLEAR_SHIFTS_URL = `${API_URL_BASE}/api/shifts/clear`;
 
 // シフト定義
 const SHIFT_DEFINITIONS = {
@@ -49,8 +47,8 @@ let calendarTitle, prevMonthBtn, nextMonthBtn, todayBtn, tableHeader, tableBody,
 let shiftModalBackground, shiftModalContent, shiftModalTitle, shiftModalBody, shiftModalCloseBtn, shiftDetailView, shiftAddForm;
 let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn, staffListContainer, addStaffForm;
 let editStaffModalBackground, editStaffModalContent, editStaffForm, editStaffModalCloseBtn;
+// ★★★ 勤務可否エディタ用のボタンを追加 ★★★
 let openAvailabilityEditorBtn, backToStaffEditBtn, saveAvailabilityBtn;
-let generateShiftBtn, clearShiftsBtn;
 
 
 // =================================================================================
@@ -96,14 +94,10 @@ function initializeDOMElements() {
     editStaffForm = document.getElementById('edit-staff-form');
     editStaffModalCloseBtn = document.getElementById('edit-staff-modal-close-btn');
     
-    // 勤務可否エディタ用のボタン
+    // ★★★ 勤務可否エディタ用のボタンを取得 ★★★
     openAvailabilityEditorBtn = document.getElementById("open-availability-editor-btn");
     backToStaffEditBtn = document.getElementById("back-to-staff-edit-btn");
-    saveAvailabilityBtn = document.getElementById("save-availability-btn-in-edit");
-    
-    // 機能ボタン
-    generateShiftBtn = document.getElementById('generate-shift-btn'); 
-    clearShiftsBtn = document.getElementById('clear-shifts-btn');
+    saveAvailabilityBtn = document.getElementById("save-availability-btn");
 }
 
 function setupEventListeners() {
@@ -124,15 +118,27 @@ function setupEventListeners() {
     
     // ボタンクリック
     staffManageBtn.addEventListener('click', openStaffModal);
-    generateShiftBtn.addEventListener('click', handleGenerateShift);
-    clearShiftsBtn.addEventListener('click', handleClearShifts);
 
     // イベント委任
     tableHeader.addEventListener('click', handleTableHeaderClick);
     tableBody.addEventListener('click', handleTableBodyClick);
-    tableBody.addEventListener('change', handleTableBodyChange); 
+    tableBody.addEventListener('change', handleTableBodyChange); // 個人目標入力の変更
     tableFooter.addEventListener('change', handleTableFooterChange);
-    tableFooter.addEventListener('click', handleTableFooterClick);
+
+    // ★★★ 編集モーダル内の画面切り替えイベント ★★★
+    openAvailabilityEditorBtn.addEventListener('click', () => {
+        const staffId = document.getElementById('edit-staff-id').value;
+        const staff = currentStaff.find(s => s.id == staffId);
+        if (staff) {
+            document.getElementById('edit-staff-form').style.display = 'none';
+            renderAvailabilityEditor(staff); // マトリクスを描画して表示
+        }
+    });
+
+    backToStaffEditBtn.addEventListener('click', () => {
+        document.getElementById('availability-editor-container').style.display = 'none';
+        document.getElementById('edit-staff-form').style.display = 'block';
+    });
 }
 
 
@@ -227,21 +233,41 @@ function buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth) {
     tableBody.innerHTML = bodyHTML;
 }
 
+/**
+ * テーブルのフッター（日ごとの必要人数・実績人数）を構築して表示します。
+ * @param {number} year - 対象年
+ * @param {number} month - 対象月
+ * @param {Array} shifts - 現在の月の全シフトデータ
+ * @param {number} daysInMonth - 対象月の日数
+ */
 function buildTableFooter(year, month, shifts, daysInMonth) {
+    // --- ここから変更 ---
+    // データ準備: 各日付とシフトタイプに対して、必要人数のデフォルト値を設定します。
+    // これにより、データが未設定の場合でも表示が崩れるのを防ぎます。
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        if (!requiredStaffing[dateStr]) {
+            requiredStaffing[dateStr] = {};
+        }
+        DAILY_COUNT_TARGETS.forEach(shiftType => {
+            // requiredStaffingに当該シフトタイプの設定がまだない場合、デフォルト値として1を設定します。
+            if (requiredStaffing[dateStr][shiftType] === undefined) {
+                requiredStaffing[dateStr][shiftType] = 1;
+            }
+        });
+    }
+    // --- ここまで変更 ---
+
     let footerHTML = '';
 
+    // 各シフトタイプ（早、日1など）の行を生成
     DAILY_COUNT_TARGETS.forEach(shiftType => {
-        footerHTML += `<tr>
-            <th class="summary-row-label">
-                <div class="summary-header-container">
-                    <button class="adjust-btn-row" data-type="${shiftType}" data-amount="-1">−</button>
-                    <span>${shiftType}</span>
-                    <button class="adjust-btn-row" data-type="${shiftType}" data-amount="1">+</button>
-                </div>
-            </th>`;
+        footerHTML += `<tr><th class="summary-row-label">${shiftType}</th>`;
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const requiredCount = requiredStaffing[dateStr]?.[shiftType] || 1;
+            
+            // 準備されたデータから必要人数を取得します。もし値がなければ0とします。
+            const requiredCount = requiredStaffing[dateStr]?.[shiftType] || 0;
             const actualCount = shifts.filter(s => s.date === dateStr && s.shift_type === shiftType).length;
             
             const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
@@ -254,44 +280,28 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
                 </div>
             </td>`;
         }
+        // 集計列のための空セルを追加
         footerHTML += `<td class="summary-main-col"></td>`;
         SUMMARY_ORDER.forEach(() => footerHTML += `<td class="summary-detail-col ${isAccordionOpen ? 'visible' : ''}"></td>`);
         footerHTML += `</tr>`;
     });
 
-    footerHTML += `<tr><th class="summary-row-label">
-        <div class="summary-header-container">
-            <button class="adjust-btn-row" data-type="合計" data-amount="-1">−</button>
-            <span>合計</span>
-            <button class="adjust-btn-row" data-type="合計" data-amount="1">+</button>
-        </div>
-    </th>`;
-
+    // 「合計」行を生成
+    footerHTML += `<tr><th class="summary-row-label">合計</th>`;
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        const requiredTotal = DAILY_COUNT_TARGETS.reduce((total, shiftType) => {
-            return total + (requiredStaffing[dateStr]?.[shiftType] || 0);
-        }, 0);
-        
-        const actualTotal = shifts.filter(s => s.date === dateStr && DAILY_COUNT_TARGETS.includes(s.shift_type)).length;
-        
+        const totalCount = shifts.filter(s => s.date === dateStr && SHIFT_DEFINITIONS[s.shift_type]?.type.includes('work')).length;
         const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
-        const statusClass = actualTotal < requiredTotal ? 'staff-shortage' : actualTotal > requiredTotal ? 'staff-surplus' : '';
-
-        footerHTML += `<td class="${dayClass}">
-            <div class="staffing-cell ${statusClass}">
-                <input type="number" class="summary-row-input" value="${requiredTotal}" min="0" data-date="${dateStr}" data-shift-type="合計" readonly>
-                <span class="actual-count">(${actualTotal})</span>
-            </div>
-        </td>`;
+        footerHTML += `<td class="${dayClass}">${totalCount}</td>`;
     }
+    // 集計列のための空セルを追加
     footerHTML += `<td class="summary-main-col"></td>`;
     SUMMARY_ORDER.forEach(() => footerHTML += `<td class="summary-detail-col ${isAccordionOpen ? 'visible' : ''}"></td>`);
     footerHTML += `</tr>`;
 
     tableFooter.innerHTML = footerHTML;
 }
+
 
 // =================================================================================
 // --- モーダル管理 (Modal Management) ---
@@ -357,12 +367,6 @@ function closeStaffModal() {
     staffModalContent.classList.remove('is-visible');
 }
 
-function closeEditStaffModal() {
-    document.getElementById('edit-staff-modal-background').classList.remove('is-visible');
-    document.getElementById('edit-staff-modal-content').classList.remove('is-visible');
-    openStaffModal();
-}
-
 function renderStaffList() {
     let listHTML = '<ul>';
     currentStaff.forEach(staff => {
@@ -381,36 +385,50 @@ function renderStaffList() {
     staffListContainer.innerHTML = listHTML;
 }
 
-function renderAvailabilityEditorInEdit(staff) {
-    const matrixTable = document.getElementById('availability-matrix-in-edit');
-    document.getElementById('editor-staff-name-in-edit').textContent = `${staff.name} の勤務可否設定`;
+// ★★★ 勤務可否エディタの描画とイベント設定 ★★★
+function renderAvailabilityEditor(staff) {
+    const editorContainer = document.getElementById('availability-editor-container');
+    const matrixTable = document.getElementById('availability-matrix');
+    document.getElementById('editor-staff-name').textContent = `${staff.name} の勤務可否設定`;
 
     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
     const shiftTypes = ["早", "日1", "日2", "中", "遅", "夜", "明"];
-    
+
     let html = '<thead><tr><th></th>';
     weekdays.forEach(day => html += `<th>${day}</th>`);
-    html += '</tr></thead><tbody>';
+    html += '</tr></thead>';
 
-    const currentAvailabilities = staff.availabilities || [];
-
+    html += '<tbody>';
     shiftTypes.forEach(st => {
         html += `<tr><td>${st}</td>`;
         for (let dow = 0; dow < 7; dow++) {
-            const availability = currentAvailabilities.find(a => a.day_of_week === dow && a.shift_type === st);
+            const availability = staff.availabilities?.find(a => a.day_of_week === dow && a.shift_type === st);
             const isAvailable = availability ? availability.is_available : true;
-            html += `<td><div class="availability-toggle ${isAvailable ? 'is-available' : ''}" data-day-of-week="${dow}" data-shift-type="${st}"></div></td>`;
+
+            html += `<td>
+                <div class="availability-toggle ${isAvailable ? 'is-available' : ''}"
+                     data-day-of-week="${dow}"
+                     data-shift-type="${st}">
+                </div>
+            </td>`;
         }
         html += '</tr>';
     });
     html += '</tbody>';
     matrixTable.innerHTML = html;
 
+    // マトリクスを表示
+    editorContainer.style.display = 'block';
+
+    // トグルのクリックイベント
     matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
-        toggle.addEventListener('click', () => toggle.classList.toggle('is-available'));
+        toggle.addEventListener('click', () => {
+            toggle.classList.toggle('is-available');
+        });
     });
 
-    document.getElementById('save-availability-btn-in-edit').onclick = async () => {
+    // 保存ボタンのイベントリスナー
+    saveAvailabilityBtn.onclick = async () => {
         const newAvailabilities = [];
         matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
             newAvailabilities.push({
@@ -420,11 +438,14 @@ function renderAvailabilityEditorInEdit(staff) {
             });
         });
         
-        if (await updateStaffAvailabilitiesApi(staff.id, newAvailabilities)) {
+        const success = await updateStaffAvailabilitiesApi(staff.id, newAvailabilities);
+        if (success) {
             alert('設定を保存しました。');
-            document.getElementById('availability-editor-container-in-edit').style.display = 'none';
+            // 基本情報フォームに戻る
+            editorContainer.style.display = 'none';
             document.getElementById('edit-staff-form').style.display = 'block';
-            await buildShiftTable(); 
+            await buildShiftTable(); // データを再取得して全体を更新
+            renderStaffList();
         } else {
             alert('設定の保存に失敗しました。');
         }
@@ -445,7 +466,7 @@ function handleTableHeaderClick(event) {
         const type = event.target.dataset.type;
         const amount = parseInt(event.target.dataset.amount, 10);
         globalTargetHolidays[type] += amount;
-        staffTargetHolidays = {};
+        staffTargetHolidays = {}; // 個別設定をリセット
         buildShiftTable();
     }
 }
@@ -481,56 +502,6 @@ function handleTableFooterChange(event) {
         if (!requiredStaffing[date]) requiredStaffing[date] = {};
         requiredStaffing[date][shiftType] = isNaN(value) ? 0 : value;
         updateStaffingStatusStyle(event.target);
-    }
-}
-
-function handleTableFooterClick(event) {
-    if (event.target.classList.contains('adjust-btn-row')) {
-        const type = event.target.dataset.type;
-        const amount = parseInt(event.target.dataset.amount, 10);
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1;
-        const daysInMonth = new Date(year, month, 0).getDate();
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            
-            if (!requiredStaffing[dateStr]) {
-                requiredStaffing[dateStr] = {};
-            }
-
-            if (type === '合計') {
-                const targetShift = DAILY_COUNT_TARGETS[0]; 
-                requiredStaffing[dateStr][targetShift] = (requiredStaffing[dateStr][targetShift] || 0) + amount;
-                if (requiredStaffing[dateStr][targetShift] < 0) requiredStaffing[dateStr][targetShift] = 0;
-            } else {
-                const currentValue = requiredStaffing[dateStr][type] || 0;
-                requiredStaffing[dateStr][type] = Math.max(0, currentValue + amount);
-            }
-        }
-        buildShiftTable();
-        return;
-    }
-
-    const labelSpan = event.target.closest('.summary-row-label span');
-    if (labelSpan) {
-        const label = labelSpan.closest('.summary-row-label');
-        const shiftType = labelSpan.textContent;
-        if (!DAILY_COUNT_TARGETS.includes(shiftType)) return;
-
-        const isActive = label.classList.contains('highlight-active');
-
-        document.querySelectorAll('.highlight-active').forEach(el => el.classList.remove('highlight-active'));
-        document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
-
-        if (!isActive) {
-            label.classList.add('highlight-active');
-            document.querySelectorAll('#table-body .has-shift').forEach(cell => {
-                if (cell.textContent === shiftType) {
-                    cell.classList.add('highlight');
-                }
-            });
-        }
     }
 }
 
@@ -575,44 +546,38 @@ async function handleAddStaff(event) {
     }
 }
 
+// ★★★ 編集モーダルを開く処理に特化させた handleEditStaff ★★★
 function handleEditStaff(staffId) {
     const staff = currentStaff.find(s => s.id === staffId);
     if (!staff) return;
 
-    closeStaffModal();
+    // 画面の状態を初期化（基本情報フォームを表示）
+    editStaffForm.style.display = 'block';
+    document.getElementById('availability-editor-container').style.display = 'none';
 
-    const editModal = document.getElementById('edit-staff-modal-content');
-    const editModalBg = document.getElementById('edit-staff-modal-background');
-    const staffForm = document.getElementById('edit-staff-form');
-    const availabilityEditor = document.getElementById('availability-editor-container-in-edit');
-
+    // フォームに現在の値をセット
     document.getElementById('edit-staff-id').value = staff.id;
     document.getElementById('edit-staff-name').value = staff.name;
     document.getElementById('edit-staff-gender').value = staff.gender || '';
     document.getElementById('edit-staff-employment-type').value = staff.employment_type || '';
     document.getElementById('edit-staff-experience').value = staff.experience || '';
 
-    staffForm.style.display = 'block';
-    availabilityEditor.style.display = 'none';
+    // モーダルを表示
+    editStaffModalBackground.classList.add('is-visible');
+    editStaffModalContent.classList.add('is-visible');
 
-    editModal.classList.add('is-visible');
-    editModalBg.classList.add('is-visible');
-
-    document.getElementById('edit-staff-modal-close-btn').onclick = () => closeEditStaffModal();
-    editModalBg.onclick = () => closeEditStaffModal();
-
-    document.getElementById('open-availability-editor-btn').onclick = () => {
-        staffForm.style.display = 'none';
-        availabilityEditor.style.display = 'block';
-        renderAvailabilityEditorInEdit(staff);
+    // 閉じるボタンのイベントリスナーを設定
+    editStaffModalCloseBtn.onclick = () => {
+        editStaffModalBackground.classList.remove('is-visible');
+        editStaffModalContent.classList.remove('is-visible');
     };
-    
-    document.getElementById('back-to-staff-edit-btn').onclick = () => {
-        availabilityEditor.style.display = 'none';
-        staffForm.style.display = 'block';
+    editStaffModalBackground.onclick = () => {
+        editStaffModalBackground.classList.remove('is-visible');
+        editStaffModalContent.classList.remove('is-visible');
     };
 
-    staffForm.onsubmit = async (event) => {
+    // フォーム送信時のイベントリスナーを設定
+    editStaffForm.onsubmit = async (event) => {
         event.preventDefault();
         const updatedData = {
             name: document.getElementById('edit-staff-name').value,
@@ -620,9 +585,16 @@ function handleEditStaff(staffId) {
             employment_type: document.getElementById('edit-staff-employment-type').value,
             experience: document.getElementById('edit-staff-experience').value,
         };
-        if (await updateStaffApi(staff.id, updatedData)) {
-            closeEditStaffModal();
+
+        const success = await updateStaffApi(staff.id, updatedData);
+        if (success) {
+            // モーダルを閉じる
+            editStaffModalBackground.classList.remove('is-visible');
+            editStaffModalContent.classList.remove('is-visible');
+            // テーブルを再描画
             await buildShiftTable();
+            // スタッフ管理リストも再描画
+            renderStaffList(); 
         } else {
             alert('スタッフ情報の更新に失敗しました。');
         }
@@ -638,78 +610,6 @@ async function handleDeleteStaff(staffId) {
         } else {
             alert('スタッフの削除に失敗しました。');
         }
-    }
-}
-
-// =================================================================================
-// --- シフト自動作成 & クリア (Shift Generation & Clear) ---
-// =================================================================================
-
-async function handleGenerateShift() {
-    if (!confirm('現在のシフトをクリアして、自動で新しいシフトを作成しますか？')) {
-        return;
-    }
-
-    alert('シフトの自動作成を開始します。完了まで時間がかかる場合があります...');
-
-    try {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1;
-
-        const requestBody = {
-            year: year,
-            month: month,
-            targetHolidays: globalTargetHolidays['休'],
-            required_staffing: requiredStaffing
-        };
-        
-        const response = await fetch(`${API_URL_BASE}/api/shifts/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert(result.message || 'シフトが生成されました！');
-        } else {
-            throw new Error(result.error || 'シフトの生成に失敗しました。');
-        }
-    } catch (error) {
-        console.error('シフト自動作成エラー:', error);
-        alert(`エラーが発生しました: ${error.message}`);
-    } finally {
-        buildShiftTable();
-    }
-}
-
-async function handleClearShifts() {
-    if (!confirm('表示されている月の全てのシフトを削除します。\nこの操作は元に戻せません。本当によろしいですか？')) {
-        return;
-    }
-
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-
-    try {
-        const response = await fetch(CLEAR_SHIFTS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ year, month }),
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert(result.message);
-            buildShiftTable();
-        } else {
-            alert(`エラー: ${result.error}`);
-        }
-    } catch (error) {
-        console.error('全シフトクリア中にエラー:', error);
-        alert('シフトのクリア中にエラーが発生しました。');
     }
 }
 
@@ -733,12 +633,7 @@ async function updateShiftApi(shiftId, shiftData) { return await postData(`${UPD
 async function deleteShiftApi(shiftId) { return await postData(`${DELETE_SHIFT_URL_TEMPLATE}${shiftId}`, null, 'Failed to delete shift', 'DELETE'); }
 async function addStaffApi(staffData) { return await postData(ADD_STAFF_URL, staffData, 'Failed to add staff'); }
 async function updateStaffApi(staffId, staffData) { return await postData(`${UPDATE_STAFF_URL_TEMPLATE}${staffId}`, staffData, 'Failed to update staff', 'PUT'); }
-
-async function deleteStaffApi(staffId) { 
-    const url = `${DELETE_STAFF_URL_TEMPLATE}${staffId}?force=true`;
-    return await postData(url, null, 'Failed to delete staff', 'DELETE'); 
-}
-
+async function deleteStaffApi(staffId) { return await postData(`${DELETE_STAFF_URL_TEMPLATE}${staffId}`, null, 'Failed to delete staff', 'DELETE'); }
 async function updateStaffAvailabilitiesApi(staffId, availabilities) {
     const url = `${UPDATE_STAFF_AVAILABILITIES_URL_TEMPLATE}${staffId}`;
     return await postData(url, availabilities, 'Failed to update availabilities', 'POST');
