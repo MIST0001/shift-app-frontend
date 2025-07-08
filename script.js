@@ -49,6 +49,8 @@ let staffManageBtn, staffModalBackground, staffModalContent, staffModalCloseBtn,
 let editStaffModalBackground, editStaffModalContent, editStaffForm, editStaffModalCloseBtn;
 // ★★★ 勤務可否エディタ用のボタンを追加 ★★★
 let openAvailabilityEditorBtn, backToStaffEditBtn, saveAvailabilityBtn;
+// ★★★ 自動生成・クリアボタン用の変数を追加 ★★★
+let generateShiftBtn, clearShiftsBtn;
 
 
 // =================================================================================
@@ -98,6 +100,10 @@ function initializeDOMElements() {
     openAvailabilityEditorBtn = document.getElementById("open-availability-editor-btn");
     backToStaffEditBtn = document.getElementById("back-to-staff-edit-btn");
     saveAvailabilityBtn = document.getElementById("save-availability-btn");
+
+    // ★★★ 自動生成・クリアボタンを取得 ★★★
+    generateShiftBtn = document.getElementById('generate-shift-btn'); 
+    clearShiftsBtn = document.getElementById('clear-shifts-btn');
 }
 
 function setupEventListeners() {
@@ -118,6 +124,9 @@ function setupEventListeners() {
     
     // ボタンクリック
     staffManageBtn.addEventListener('click', openStaffModal);
+    // ★★★ 自動生成・クリアボタンのイベントリスナーを追加 ★★★
+    generateShiftBtn.addEventListener('click', handleGenerateShift);
+    clearShiftsBtn.addEventListener('click', handleClearShifts);
 
     // イベント委任
     tableHeader.addEventListener('click', handleTableHeaderClick);
@@ -233,40 +242,26 @@ function buildTableBody(staff, shifts, shiftMap, year, month, daysInMonth) {
     tableBody.innerHTML = bodyHTML;
 }
 
-/**
- * テーブルのフッター（日ごとの必要人数・実績人数）を構築して表示します。
- * @param {number} year - 対象年
- * @param {number} month - 対象月
- * @param {Array} shifts - 現在の月の全シフトデータ
- * @param {number} daysInMonth - 対象月の日数
- */
 function buildTableFooter(year, month, shifts, daysInMonth) {
-    // --- ここから変更 ---
-    // データ準備: 各日付とシフトタイプに対して、必要人数のデフォルト値を設定します。
-    // これにより、データが未設定の場合でも表示が崩れるのを防ぎます。
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         if (!requiredStaffing[dateStr]) {
             requiredStaffing[dateStr] = {};
         }
         DAILY_COUNT_TARGETS.forEach(shiftType => {
-            // requiredStaffingに当該シフトタイプの設定がまだない場合、デフォルト値として1を設定します。
             if (requiredStaffing[dateStr][shiftType] === undefined) {
                 requiredStaffing[dateStr][shiftType] = 1;
             }
         });
     }
-    // --- ここまで変更 ---
 
     let footerHTML = '';
 
-    // 各シフトタイプ（早、日1など）の行を生成
     DAILY_COUNT_TARGETS.forEach(shiftType => {
         footerHTML += `<tr><th class="summary-row-label">${shiftType}</th>`;
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
-            // 準備されたデータから必要人数を取得します。もし値がなければ0とします。
             const requiredCount = requiredStaffing[dateStr]?.[shiftType] || 0;
             const actualCount = shifts.filter(s => s.date === dateStr && s.shift_type === shiftType).length;
             
@@ -280,13 +275,11 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
                 </div>
             </td>`;
         }
-        // 集計列のための空セルを追加
         footerHTML += `<td class="summary-main-col"></td>`;
         SUMMARY_ORDER.forEach(() => footerHTML += `<td class="summary-detail-col ${isAccordionOpen ? 'visible' : ''}"></td>`);
         footerHTML += `</tr>`;
     });
 
-    // 「合計」行を生成
     footerHTML += `<tr><th class="summary-row-label">合計</th>`;
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -294,7 +287,6 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
         const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
         footerHTML += `<td class="${dayClass}">${totalCount}</td>`;
     }
-    // 集計列のための空セルを追加
     footerHTML += `<td class="summary-main-col"></td>`;
     SUMMARY_ORDER.forEach(() => footerHTML += `<td class="summary-detail-col ${isAccordionOpen ? 'visible' : ''}"></td>`);
     footerHTML += `</tr>`;
@@ -385,7 +377,6 @@ function renderStaffList() {
     staffListContainer.innerHTML = listHTML;
 }
 
-// ★★★ 勤務可否エディタの描画とイベント設定 ★★★
 function renderAvailabilityEditor(staff) {
     const editorContainer = document.getElementById('availability-editor-container');
     const matrixTable = document.getElementById('availability-matrix');
@@ -417,17 +408,14 @@ function renderAvailabilityEditor(staff) {
     html += '</tbody>';
     matrixTable.innerHTML = html;
 
-    // マトリクスを表示
     editorContainer.style.display = 'block';
 
-    // トグルのクリックイベント
     matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
         toggle.addEventListener('click', () => {
             toggle.classList.toggle('is-available');
         });
     });
 
-    // 保存ボタンのイベントリスナー
     saveAvailabilityBtn.onclick = async () => {
         const newAvailabilities = [];
         matrixTable.querySelectorAll('.availability-toggle').forEach(toggle => {
@@ -441,10 +429,9 @@ function renderAvailabilityEditor(staff) {
         const success = await updateStaffAvailabilitiesApi(staff.id, newAvailabilities);
         if (success) {
             alert('設定を保存しました。');
-            // 基本情報フォームに戻る
             editorContainer.style.display = 'none';
             document.getElementById('edit-staff-form').style.display = 'block';
-            await buildShiftTable(); // データを再取得して全体を更新
+            await buildShiftTable();
             renderStaffList();
         } else {
             alert('設定の保存に失敗しました。');
@@ -546,27 +533,22 @@ async function handleAddStaff(event) {
     }
 }
 
-// ★★★ 編集モーダルを開く処理に特化させた handleEditStaff ★★★
 function handleEditStaff(staffId) {
     const staff = currentStaff.find(s => s.id === staffId);
     if (!staff) return;
 
-    // 画面の状態を初期化（基本情報フォームを表示）
     editStaffForm.style.display = 'block';
     document.getElementById('availability-editor-container').style.display = 'none';
 
-    // フォームに現在の値をセット
     document.getElementById('edit-staff-id').value = staff.id;
     document.getElementById('edit-staff-name').value = staff.name;
     document.getElementById('edit-staff-gender').value = staff.gender || '';
     document.getElementById('edit-staff-employment-type').value = staff.employment_type || '';
     document.getElementById('edit-staff-experience').value = staff.experience || '';
 
-    // モーダルを表示
     editStaffModalBackground.classList.add('is-visible');
     editStaffModalContent.classList.add('is-visible');
 
-    // 閉じるボタンのイベントリスナーを設定
     editStaffModalCloseBtn.onclick = () => {
         editStaffModalBackground.classList.remove('is-visible');
         editStaffModalContent.classList.remove('is-visible');
@@ -576,7 +558,6 @@ function handleEditStaff(staffId) {
         editStaffModalContent.classList.remove('is-visible');
     };
 
-    // フォーム送信時のイベントリスナーを設定
     editStaffForm.onsubmit = async (event) => {
         event.preventDefault();
         const updatedData = {
@@ -588,12 +569,9 @@ function handleEditStaff(staffId) {
 
         const success = await updateStaffApi(staff.id, updatedData);
         if (success) {
-            // モーダルを閉じる
             editStaffModalBackground.classList.remove('is-visible');
             editStaffModalContent.classList.remove('is-visible');
-            // テーブルを再描画
             await buildShiftTable();
-            // スタッフ管理リストも再描画
             renderStaffList(); 
         } else {
             alert('スタッフ情報の更新に失敗しました。');
@@ -653,6 +631,77 @@ async function postData(url, data, errorMessage, method = 'POST') {
     } catch (error) {
         console.error(errorMessage, error);
         return false;
+    }
+}
+
+// =================================================================================
+// --- シフト自動作成 & クリア (Shift Generation & Clear) ---
+// =================================================================================
+
+async function handleGenerateShift() {
+    if (!confirm('現在のシフトをクリアして、自動で新しいシフトを作成しますか？')) {
+        return;
+    }
+
+    alert('シフトの自動作成を開始します。完了まで時間がかかる場合があります...');
+
+    try {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+
+        const requestBody = {
+            year: year,
+            month: month,
+            targetHolidays: globalTargetHolidays['休'],
+            required_staffing: requiredStaffing
+        };
+        
+        const response = await fetch(`${API_URL_BASE}/api/shifts/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message || 'シフトが生成されました！');
+            buildShiftTable();
+        } else {
+            throw new Error(result.error || 'シフトの生成に失敗しました。');
+        }
+    } catch (error) {
+        console.error('シフト自動作成エラー:', error);
+        alert(`エラーが発生しました: ${error.message}`);
+    }
+}
+
+async function handleClearShifts() {
+    if (!confirm('表示されている月の全てのシフトを削除します。\nこの操作は元に戻せません。本当によろしいですか？')) {
+        return;
+    }
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+
+    try {
+        const response = await fetch(`${API_URL_BASE}/api/shifts/clear`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year, month }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            buildShiftTable();
+        } else {
+            alert(`エラー: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('全シフトクリア中にエラー:', error);
+        alert('シフトのクリア中にエラーが発生しました。');
     }
 }
 
