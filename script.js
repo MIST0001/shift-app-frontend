@@ -241,7 +241,7 @@ function buildTableFooter(year, month, shifts, daysInMonth) {
             </th>`;
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const requiredCount = requiredStaffing[dateStr]?.[shiftType] || 0;
+            const requiredCount = requiredStaffing[dateStr]?.[shiftType] || 1;
             const actualCount = shifts.filter(s => s.date === dateStr && s.shift_type === shiftType).length;
             
             const dayClass = new Date(year, month - 1, day).getDay() === 0 ? "day-sunday" : "";
